@@ -10,9 +10,11 @@ const routes = require('./routes')
 
 const app = express()
 
+const normalizeOrigin = (value) => value.trim().replace(/\/+$/, '')
+
 const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:5173')
   .split(',')
-  .map((origin) => origin.trim())
+  .map((origin) => normalizeOrigin(origin))
   .filter(Boolean)
 
 // ======================
@@ -21,10 +23,14 @@ const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '
 app.use(cors({
   origin: (origin, callback) => {
     // Allow server-to-server requests (no Origin) and configured frontend origins.
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true)
+    if (!origin) return callback(null, true)
+
+    const requestOrigin = normalizeOrigin(origin)
+    if (allowedOrigins.includes(requestOrigin)) return callback(null, true)
+
     return callback(new Error('Not allowed by CORS'))
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 

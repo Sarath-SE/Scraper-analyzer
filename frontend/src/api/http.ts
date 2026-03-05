@@ -20,7 +20,8 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
+  const response = await fetch(`${API_BASE_URL}/${normalizedPath}`, {
     ...init,
     headers
   });
