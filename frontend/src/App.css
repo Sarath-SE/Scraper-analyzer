@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@keyframes blob {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9999;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+[data-theme='dark'] .theme-toggle {
+  background: #111827;
+  border-color: #374151;
+  color: #f9fafb;
+}
+
+[data-theme='dark'] body {
+  background: #030712;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .bg-white,
+[data-theme='dark'] .bg-gray-50,
+[data-theme='dark'] .bg-gray-100 {
+  background-color: #111827 !important;
+}
+
+[data-theme='dark'] .bg-blue-50,
+[data-theme='dark'] .bg-green-50,
+[data-theme='dark'] .bg-purple-50,
+[data-theme='dark'] .bg-amber-50,
+[data-theme='dark'] .bg-amber-100,
+[data-theme='dark'] .bg-blue-100,
+[data-theme='dark'] .bg-green-100,
+[data-theme='dark'] .bg-purple-100 {
+  background-color: #1f2937 !important;
+}
+
+[data-theme='dark'] .border-gray-100,
+[data-theme='dark'] .border-gray-200,
+[data-theme='dark'] .border-gray-300,
+[data-theme='dark'] .border-blue-200,
+[data-theme='dark'] .border-green-200,
+[data-theme='dark'] .border-purple-200,
+[data-theme='dark'] .border-amber-200 {
+  border-color: #374151 !important;
+}
+
+[data-theme='dark'] .text-gray-900,
+[data-theme='dark'] .text-gray-800,
+[data-theme='dark'] .text-gray-700,
+[data-theme='dark'] .text-gray-600,
+[data-theme='dark'] .text-gray-500,
+[data-theme='dark'] .text-gray-400 {
+  color: #e5e7eb !important;
+}
+
+[data-theme='dark'] .text-blue-700,
+[data-theme='dark'] .text-green-700,
+[data-theme='dark'] .text-purple-700,
+[data-theme='dark'] .text-red-700 {
+  color: #93c5fd !important;
+}
+
+[data-theme='dark'] input,
+[data-theme='dark'] select {
+  background-color: #0f172a !important;
+  color: #e5e7eb !important;
+  border-color: #374151 !important;
+}

@@ -1,0 +1,618 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { runPivot } from '../api/pivot.api';
+import { fetchPivotDimensions } from '../api/dimensions.api';
+import { fetchSitemaps, type SitemapOption } from '../api/sitemaps.api';
+import { UnauthorizedError } from '../api/http';
+import PivotBuilder from '../components/PivotBuilder';
+import PivotTable from '../components/PivotTable';
+import type { PivotResponse, PivotMeasure } from '../types/pivot';
+import type { AuthUser } from '../auth/storage';
+
+type PivotBuilderState = {
+  rows: string[];
+  columns: string[];
+  measures: string[];
+};
+
+const ALL_MEASURES: PivotMeasure[] = [
+  'quantity',
+  'quantity_sold',
+  'avg_price',
+  'estimated_sales',
+];
+
+interface DashboardProps {
+  onNewScrape: () => void;
+  onSignOut: () => void;
+  onSessionExpired: () => void;
+  sitemapUid: string;
+  user: AuthUser;
+  isDarkMode: boolean;
+  onToggleTheme: () => void;
+}
+
+export default function Dashboard({
+  onNewScrape,
+  onSignOut,
+  onSessionExpired,
+  sitemapUid,
+  user,
+  isDarkMode,
+  onToggleTheme,
+}: DashboardProps) {
+  const [sitemaps, setSitemaps] = useState<SitemapOption[]>([]);
+  const [activeSitemapUid, setActiveSitemapUid] = useState<string>(sitemapUid);
+  const [sitemapSearch, setSitemapSearch] = useState('');
+  const [monthFilter, setMonthFilter] = useState('');
+
+  const [dimensions, setDimensions] = useState<string[]>([]);
+  const [data, setData] = useState<PivotResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const [builder, setBuilder] = useState<PivotBuilderState>({
+    rows: ['manufacturer'],
+    columns: ['snapshot_time'],
+    measures: ['quantity'],
+  });
+
+  const selectedSitemap = useMemo(
+    () => sitemaps.find((s) => s.sitemap_uid === activeSitemapUid) ?? null,
+    [sitemaps, activeSitemapUid]
+  );
+
+  const filteredSitemaps = useMemo(() => {
+    const query = sitemapSearch.trim().toLowerCase();
+    if (!query) return sitemaps;
+
+    const getRank = (sitemap: SitemapOption) => {
+      const uid = sitemap.sitemap_uid.toLowerCase();
+      const name = (sitemap.name ?? '').toLowerCase();
+      if (uid.startsWith(query)) return 0;
+      if (uid.includes(query)) return 1;
+      if (name.startsWith(query)) return 2;
+      if (name.includes(query)) return 3;
+      return 9;
+    };
+
+    return sitemaps
+      .filter((sitemap) => getRank(sitemap) < 9)
+      .sort((a, b) => {
+        const rankA = getRank(a);
+        const rankB = getRank(b);
+        if (rankA !== rankB) return rankA - rankB;
+        return a.sitemap_uid.localeCompare(b.sitemap_uid);
+      });
+  }, [sitemaps, sitemapSearch]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSitemaps()
+      .then((list) => {
+        if (cancelled) return;
+
+        setSitemaps(list);
+
+        if (activeSitemapUid) return;
+
+        const fallback = sitemapUid || localStorage.getItem('currentSitemapUid') || list[0]?.sitemap_uid || '';
+        if (fallback) {
+          setActiveSitemapUid(fallback);
+        }
+      })
+      .catch((error) => {
+        console.error('[Sitemaps Error]', error);
+        if (error instanceof UnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+        setErrorMessage(error.message || 'Failed to load sitemap list');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSitemapUid, sitemapUid, onSessionExpired]);
+
+  useEffect(() => {
+    if (sitemapUid && sitemapUid !== activeSitemapUid) {
+      setActiveSitemapUid(sitemapUid);
+    }
+  }, [sitemapUid, activeSitemapUid]);
+
+  useEffect(() => {
+    if (!activeSitemapUid) return;
+    localStorage.setItem('currentSitemapUid', activeSitemapUid);
+  }, [activeSitemapUid]);
+
+  useEffect(() => {
+    if (!activeSitemapUid) {
+      setSitemapSearch('');
+      return;
+    }
+
+    const selected = sitemaps.find((s) => s.sitemap_uid === activeSitemapUid);
+    if (selected) {
+      setSitemapSearch(selected.sitemap_uid);
+    }
+  }, [activeSitemapUid, sitemaps]);
+
+  useEffect(() => {
+    if (!activeSitemapUid) {
+      setDimensions([]);
+      return;
+    }
+
+    fetchPivotDimensions({
+      sitemap_uid: activeSitemapUid,
+      month: monthFilter || undefined,
+    })
+      .then((dims) => {
+        setDimensions(dims);
+        setErrorMessage('');
+      })
+      .catch((error) => {
+        console.error('[Pivot Dimensions Error]', error);
+        if (error instanceof UnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+        setDimensions([]);
+        setErrorMessage(error.message || 'Failed to load pivot dimensions');
+      });
+  }, [activeSitemapUid, monthFilter, onSessionExpired]);
+
+  useEffect(() => {
+    if (!builder.rows.length || !builder.measures.length || !activeSitemapUid) {
+      setData(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    runPivot({
+      rows: builder.rows,
+      columns: builder.columns,
+      measures: builder.measures as PivotMeasure[],
+      filters: {
+        sitemap_uid: activeSitemapUid,
+        month: monthFilter || undefined,
+      },
+    })
+      .then((res) => {
+        setData(res);
+        setIsLoading(false);
+        setErrorMessage('');
+      })
+      .catch((err) => {
+        console.error('[Pivot Run Error]', err);
+        if (err instanceof UnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+        setData(null);
+        setIsLoading(false);
+        setErrorMessage(err.message || 'Failed to load pivot data');
+      });
+  }, [builder, activeSitemapUid, monthFilter, onSessionExpired]);
+
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+
+    const onClickOutside = (event: MouseEvent) => {
+      if (!userMenuRef.current) return;
+      if (!userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [isUserMenuOpen]);
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-50 relative">
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="px-6 py-4 flex justify-between items-start gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">Analytics Dashboard</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Interactive Pivot Table Builder</p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-3">
+           
+
+            <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg border border-gray-200">
+              <label htmlFor="sitemap-select" className="text-sm font-medium text-gray-700">Sitemap</label>
+              <input
+                id="sitemap-select"
+                list="sitemap-options"
+                value={sitemapSearch}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSitemapSearch(value);
+                  const exactMatch = sitemaps.find((s) => s.sitemap_uid === value);
+                  if (exactMatch) {
+                    setActiveSitemapUid(exactMatch.sitemap_uid);
+                  }
+                }}
+                placeholder="Type sitemap id"
+                className="text-sm bg-white border border-gray-300 rounded-md px-2 py-1 text-gray-900 min-w-[210px]"
+              />
+              <datalist id="sitemap-options">
+                {filteredSitemaps.map((sitemap) => (
+                  <option key={sitemap.sitemap_uid} value={sitemap.sitemap_uid}>
+                    {sitemap.name ?? sitemap.sitemap_uid}
+                  </option>
+                ))}
+              </datalist>
+            </div>
+
+            <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg border border-gray-200">
+              <label htmlFor="month-filter" className="text-sm font-medium text-gray-700">Month</label>
+              <input
+                id="month-filter"
+                type="month"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="text-sm bg-white border border-gray-300 rounded-md px-2 py-1 text-gray-900"
+              />
+              <button
+                onClick={() => setMonthFilter('')}
+                className="px-2 py-1 text-xs text-gray-700 border border-gray-300 rounded-md bg-white hover:bg-gray-50"
+              >
+                Clear
+              </button>
+            </div>
+
+            <button
+              onClick={onNewScrape}
+              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New Scrape
+            </button>
+ <button
+              onClick={onToggleTheme}
+              className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDarkMode ? 'Light mode' : 'Dark mode'}
+            >
+              {isDarkMode ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v2m0 14v2m7-9h2M3 12H5m11.314 6.314l1.414 1.414M6.272 6.272l1.414 1.414m0 8.9l-1.414 1.414m12.728-12.728l-1.414 1.414M12 7a5 5 0 100 10 5 5 0 000-10z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 118.646 3.646 7 7 0 0020.354 15.354z" />
+                </svg>
+              )}
+            </button>
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setIsUserMenuOpen((value) => !value)}
+                className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                aria-label="Open user menu"
+                title="User menu"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A11.952 11.952 0 0112 15.75c2.54 0 4.894.79 6.879 2.054M15 9a3 3 0 11-6 0 3 3 0 016 0zm6 3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-40 p-3">
+                  <div className="text-sm font-semibold text-gray-900 break-words">
+                    {user.full_name || user.email}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1 break-words">{user.email}</div>
+                  <button
+                    onClick={onSignOut}
+                    className="mt-3 w-full px-3 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 pb-4 text-xs text-gray-600 flex items-center gap-4">
+          <span>
+            Active: <strong>{activeSitemapUid || 'None'}</strong>
+          </span>
+          <span>
+            Snapshots: <strong>{selectedSitemap?.snapshot_count ?? 0}</strong>
+          </span>
+          <span>
+            Last Snapshot: <strong>{selectedSitemap?.last_snapshot_date ?? 'N/A'}</strong>
+          </span>
+          {monthFilter && (
+            <span>
+              Month: <strong>{monthFilter}</strong>
+            </span>
+          )}
+        </div>
+        {errorMessage && (
+          <div className="px-6 pb-4">
+            <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+              {errorMessage}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 flex overflow-hidden">
+        <div
+          className={`bg-white border-r border-gray-200 overflow-y-auto transition-all duration-300 ${
+            isSidebarCollapsed ? 'w-0' : 'w-64'
+          }`}
+        >
+          {!isSidebarCollapsed && (
+            <PivotBuilder
+              key={`${builder.rows.join(',')}-${builder.columns.join(',')}-${builder.measures.join(',')}`}
+              allDimensions={dimensions}
+              allMeasures={ALL_MEASURES}
+              value={builder}
+              onChange={setBuilder}
+            />
+          )}
+        </div>
+
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white border border-gray-300 rounded-r-lg shadow-lg hover:bg-gray-50 transition-all z-30 p-2"
+          style={{ left: isSidebarCollapsed ? '0' : '256px' }}
+          title={isSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+        >
+          <svg
+            className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-0' : 'rotate-180'}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {!isSidebarCollapsed && (
+            <div className="bg-white border-b border-gray-200 p-4">
+              <div className="grid grid-cols-3 gap-4">
+              <DropZone
+                title="Rows"
+                items={builder.rows}
+                onRemove={(item) => {
+                  if (builder.rows.length > 1) {
+                    setBuilder({ ...builder, rows: builder.rows.filter((i) => i !== item) });
+                  }
+                }}
+                onClear={() => {
+                  if (builder.rows.length > 0) {
+                    setBuilder({ ...builder, rows: [builder.rows[0]] });
+                  }
+                }}
+                onDrop={(item) => {
+                  const newBuilder = {
+                    rows: builder.rows.includes(item) ? builder.rows : [...builder.rows, item],
+                    columns: builder.columns.filter((i) => i !== item),
+                    measures: builder.measures,
+                  };
+                  setBuilder(newBuilder);
+                }}
+                color="blue"
+                acceptType="dimension"
+                minItems={1}
+              />
+
+              <DropZone
+                title="Columns"
+                items={builder.columns}
+                onRemove={(item) => {
+                  if (builder.columns.length > 1) {
+                    setBuilder({ ...builder, columns: builder.columns.filter((i) => i !== item) });
+                  }
+                }}
+                onClear={() => {
+                  if (builder.columns.length > 0) {
+                    setBuilder({ ...builder, columns: [builder.columns[0]] });
+                  }
+                }}
+                onDrop={(item) => {
+                  const newBuilder = {
+                    rows: builder.rows.filter((i) => i !== item),
+                    columns: builder.columns.includes(item) ? builder.columns : [...builder.columns, item],
+                    measures: builder.measures,
+                  };
+                  setBuilder(newBuilder);
+                }}
+                color="purple"
+                acceptType="dimension"
+                minItems={1}
+              />
+
+              <DropZone
+                title="Values"
+                items={builder.measures}
+                onRemove={(item) => {
+                  if (builder.measures.length > 1) {
+                    setBuilder({ ...builder, measures: builder.measures.filter((i) => i !== item) });
+                  }
+                }}
+                onClear={() => {
+                  if (builder.measures.length > 0) {
+                    setBuilder({ ...builder, measures: [builder.measures[0]] });
+                  }
+                }}
+                onDrop={(item) => {
+                  if (!builder.measures.includes(item)) {
+                    setBuilder({ ...builder, measures: [...builder.measures, item] });
+                  }
+                }}
+                color="green"
+                acceptType="measure"
+                minItems={1}
+              />
+              </div>
+            </div>
+          )}
+
+          <div className={`flex-1 overflow-hidden bg-gray-50 ${isSidebarCollapsed ? 'p-2' : 'p-6'}`}>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mb-4"></div>
+                  <p className="text-gray-600 font-medium">Loading pivot data...</p>
+                </div>
+              </div>
+            ) : data ? (
+              <PivotTable data={data} rowKeys={builder.rows} measures={builder.measures} />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center bg-white rounded-lg border border-gray-200 p-12 shadow-sm">
+                  <div className="text-5xl mb-4">No Data</div>
+                  <p className="text-gray-900 font-semibold text-lg mb-2">Configure Your Pivot Table</p>
+                  <p className="text-gray-500 text-sm">Use sitemap and month filter, then drag fields to drop zones</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface DropZoneProps {
+  title: string;
+  items: string[];
+  onRemove: (item: string) => void;
+  onClear: () => void;
+  onDrop: (item: string) => void;
+  color: 'blue' | 'purple' | 'green';
+  acceptType?: 'dimension' | 'measure';
+  minItems?: number;
+}
+
+function DropZone({ title, items, onRemove, onClear, onDrop, color, minItems = 0 }: DropZoneProps) {
+  const [isDragOver, setIsDragOver] = React.useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const data = e.dataTransfer.getData('text/plain');
+    if (data) {
+      onDrop(data);
+    }
+  };
+
+  const colorClasses = {
+    blue: {
+      bg: 'bg-blue-50',
+      border: 'border-blue-200',
+      text: 'text-blue-700',
+      itemBg: 'bg-blue-100',
+      itemBorder: 'border-blue-300',
+      dragOver: 'border-blue-400 bg-blue-100',
+    },
+    purple: {
+      bg: 'bg-purple-50',
+      border: 'border-purple-200',
+      text: 'text-purple-700',
+      itemBg: 'bg-purple-100',
+      itemBorder: 'border-purple-300',
+      dragOver: 'border-purple-400 bg-purple-100',
+    },
+    green: {
+      bg: 'bg-green-50',
+      border: 'border-green-200',
+      text: 'text-green-700',
+      itemBg: 'bg-green-100',
+      itemBorder: 'border-green-300',
+      dragOver: 'border-green-400 bg-green-100',
+    },
+  };
+
+  const colors = colorClasses[color];
+  const canClear = items.length > minItems;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-gray-700 uppercase">{title}</span>
+          {minItems > 0 && (
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full" title="At least one item required">
+              Required
+            </span>
+          )}
+        </div>
+        {canClear && (
+          <button onClick={onClear} className="text-xs text-red-600 hover:text-red-700 font-medium">
+            Clear
+          </button>
+        )}
+      </div>
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`min-h-[80px] p-3 border-2 border-dashed rounded-lg transition-colors ${
+          isDragOver
+            ? colors.dragOver
+            : items.length > 0
+              ? `${colors.border} ${colors.bg}`
+              : 'border-gray-300 bg-gray-50'
+        }`}
+      >
+        {items.length === 0 ? (
+          <div className="text-xs text-gray-400 text-center py-4">Drop {title.toLowerCase()} here</div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {items.map((item) => {
+              const isLocked = minItems > 0 && items.length <= minItems;
+              return (
+                <div
+                  key={item}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 ${colors.itemBg} border ${colors.itemBorder} rounded-md text-xs font-medium ${colors.text}`}
+                >
+                  {isLocked && (
+                    <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  )}
+                  <span>{item.replace('_', ' ')}</span>
+                  {!isLocked && (
+                    <button onClick={() => onRemove(item)} className="hover:text-red-600 transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
