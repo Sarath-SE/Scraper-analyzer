@@ -5,17 +5,30 @@ exports.triggerScrape = async (req, res) => {
   try {
     const { sitemap_uid } = req.body;
     const triggeredBy = req.user?.email || 'user';
+    let sitemapName = null;
+
+    try {
+      const metadata = await scraper.getSitemapMetadata(sitemap_uid);
+      sitemapName = metadata.name;
+    } catch (metadataError) {
+      console.warn(
+        `[Scrape Trigger] Failed to fetch sitemap metadata for ${sitemap_uid}:`,
+        metadataError.message
+      );
+    }
 
     // 1️⃣ Ensure sitemap exists
     const sitemapRes = await db.query(
       `
-      INSERT INTO sitemaps (sitemap_uid)
-      VALUES ($1)
+      INSERT INTO sitemaps (sitemap_uid, name)
+      VALUES ($1, $2)
       ON CONFLICT (sitemap_uid)
-      DO UPDATE SET sitemap_uid = EXCLUDED.sitemap_uid
+      DO UPDATE SET
+        sitemap_uid = EXCLUDED.sitemap_uid,
+        name = COALESCE(EXCLUDED.name, sitemaps.name)
       RETURNING id
       `,
-      [sitemap_uid]
+      [sitemap_uid, sitemapName]
     );
 
     const sitemapId = sitemapRes.rows[0].id;

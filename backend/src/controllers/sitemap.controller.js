@@ -5,7 +5,7 @@ exports.listSitemaps = async (req, res) => {
     const result = await db.query(`
       SELECT
         s.sitemap_uid,
-        s.name,
+        s.name AS description,
         MAX(sn.snapshot_date) AS last_snapshot_date,
         COUNT(sn.id)::int AS snapshot_count
       FROM sitemaps s

@@ -2,7 +2,7 @@ import { apiFetch } from './http';
 
 export interface SitemapOption {
   sitemap_uid: string;
-  name: string | null;
+  description: string | null;
   last_snapshot_date: string | null;
   snapshot_count: number;
 }
@@ -15,5 +15,13 @@ export async function fetchSitemaps(): Promise<SitemapOption[]> {
   }
 
   const data = await res.json();
-  return data.sitemaps ?? [];
+  const rawList = Array.isArray(data?.sitemaps) ? data.sitemaps : [];
+
+  return rawList.map((item: any) => ({
+    sitemap_uid: String(item.sitemap_uid ?? ''),
+    // Backward-compatible with older API shape that returns `name`.
+    description: item.description ?? item.name ?? null,
+    last_snapshot_date: item.last_snapshot_date ?? null,
+    snapshot_count: Number(item.snapshot_count ?? 0),
+  }));
 }

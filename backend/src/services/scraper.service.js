@@ -81,3 +81,24 @@ exports.getScrapedData = async (jobId) => {
     })
     .filter(Boolean);
 };
+
+/**
+ * Fetch sitemap metadata (name) from WebScraper.
+ */
+exports.getSitemapMetadata = async (sitemapId) => {
+  const parsedId = parseInt(sitemapId, 10);
+  if (Number.isNaN(parsedId)) {
+    throw new Error('Invalid sitemap id');
+  }
+
+  const client = getClient();
+  const res = await client.getSitemap(parsedId);
+
+  if (!res || typeof res.name !== 'string') {
+    throw new Error('Invalid sitemap metadata response');
+  }
+
+  return {
+    name: res.name.trim() || null
+  };
+};

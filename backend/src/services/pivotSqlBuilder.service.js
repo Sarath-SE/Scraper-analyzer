@@ -13,10 +13,10 @@ const DIMENSION_MAP = {
 };
 
 const MEASURE_MAP = {
-  quantity: 'SUM(quantity)',
-  quantity_sold: 'SUM(quantity_sold)',
-  avg_price: 'AVG(price)',
-  estimated_sales: 'SUM(estimated_sales)',
+  quantity: 'quantity',
+  quantity_sold: 'quantity_sold',
+  avg_price: 'avg_price',
+  estimated_sales: 'estimated_sales',
 };
 
 const ALLOWED_TIME_COLUMNS = new Set(['snapshot_time', 'snapshot_date']);
@@ -137,18 +137,46 @@ base_all AS (
   ${fullHistoryWhereClause}
 ),
 
+grouped_period AS (
+  SELECT
+    ${rowGroupBy},
+    ${timeCol},
+    snapshot_time_for_lag,
+    snapshot_date_filter,
+    SUM(quantity) AS quantity,
+    AVG(price) AS avg_price
+  FROM base_all
+  GROUP BY
+    ${rowGroupBy},
+    ${timeCol},
+    snapshot_time_for_lag,
+    snapshot_date_filter
+),
+
 base_with_metrics AS (
   SELECT
     *,
-    (LAG(quantity) OVER (
-      PARTITION BY product_id
-      ORDER BY snapshot_time_for_lag
-    ) - quantity) AS quantity_sold,
-    (LAG(quantity) OVER (
-      PARTITION BY product_id
-      ORDER BY snapshot_time_for_lag
-    ) - quantity) * price AS estimated_sales
-  FROM base_all
+    GREATEST(
+      COALESCE(
+        (LAG(quantity) OVER (
+          PARTITION BY ${rowGroupBy}
+          ORDER BY snapshot_time_for_lag
+        ) - quantity),
+        0
+      ),
+      0
+    ) AS quantity_sold,
+    GREATEST(
+      COALESCE(
+        (LAG(quantity) OVER (
+          PARTITION BY ${rowGroupBy}
+          ORDER BY snapshot_time_for_lag
+        ) - quantity),
+        0
+      ),
+      0
+    ) * avg_price AS estimated_sales
+  FROM grouped_period
 ),
 
 filtered AS (
@@ -162,9 +190,6 @@ SELECT
   ${timeCol},
   ${measureSelect}
 FROM filtered
-GROUP BY
-  ${rowGroupBy},
-  ${timeCol}
 ORDER BY
   ${rowGroupBy},
   ${timeCol};

@@ -98,10 +98,10 @@ export function App() {
     alert('Your session has expired. Please log in again.');
   }, []);
 
-  const handleScrapeComplete = (sitemapUid: string) => {
+  const handleScrapeComplete = useCallback((sitemapUid: string) => {
     setCurrentSitemapUid(sitemapUid);
     setCurrentPage('dashboard');
-  };
+  }, []);
 
   const handleNewScrape = () => {
     setCurrentPage('scraper');

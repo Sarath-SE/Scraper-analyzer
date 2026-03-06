@@ -5,6 +5,7 @@ import { fetchSitemaps, type SitemapOption } from '../api/sitemaps.api';
 import { UnauthorizedError } from '../api/http';
 import PivotBuilder from '../components/PivotBuilder';
 import PivotTable from '../components/PivotTable';
+import DashboardTour from '../components/DashboardTour';
 import type { PivotResponse, PivotMeasure } from '../types/pivot';
 import type { AuthUser } from '../auth/storage';
 
@@ -12,6 +13,13 @@ type PivotBuilderState = {
   rows: string[];
   columns: string[];
   measures: string[];
+};
+
+const formatSitemapLabel = (sitemap: SitemapOption): string => {
+  const description = sitemap.description?.trim();
+  return description
+    ? `${description} - ${sitemap.sitemap_uid}`
+    : sitemap.sitemap_uid;
 };
 
 const ALL_MEASURES: PivotMeasure[] = [
@@ -42,7 +50,6 @@ export default function Dashboard({
 }: DashboardProps) {
   const [sitemaps, setSitemaps] = useState<SitemapOption[]>([]);
   const [activeSitemapUid, setActiveSitemapUid] = useState<string>(sitemapUid);
-  const [sitemapSearch, setSitemapSearch] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
 
   const [dimensions, setDimensions] = useState<string[]>([]);
@@ -51,6 +58,7 @@ export default function Dashboard({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [runTour, setRunTour] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [builder, setBuilder] = useState<PivotBuilderState>({
@@ -63,30 +71,6 @@ export default function Dashboard({
     () => sitemaps.find((s) => s.sitemap_uid === activeSitemapUid) ?? null,
     [sitemaps, activeSitemapUid]
   );
-
-  const filteredSitemaps = useMemo(() => {
-    const query = sitemapSearch.trim().toLowerCase();
-    if (!query) return sitemaps;
-
-    const getRank = (sitemap: SitemapOption) => {
-      const uid = sitemap.sitemap_uid.toLowerCase();
-      const name = (sitemap.name ?? '').toLowerCase();
-      if (uid.startsWith(query)) return 0;
-      if (uid.includes(query)) return 1;
-      if (name.startsWith(query)) return 2;
-      if (name.includes(query)) return 3;
-      return 9;
-    };
-
-    return sitemaps
-      .filter((sitemap) => getRank(sitemap) < 9)
-      .sort((a, b) => {
-        const rankA = getRank(a);
-        const rankB = getRank(b);
-        if (rankA !== rankB) return rankA - rankB;
-        return a.sitemap_uid.localeCompare(b.sitemap_uid);
-      });
-  }, [sitemaps, sitemapSearch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,27 +103,15 @@ export default function Dashboard({
   }, [activeSitemapUid, sitemapUid, onSessionExpired]);
 
   useEffect(() => {
-    if (sitemapUid && sitemapUid !== activeSitemapUid) {
+    if (sitemapUid) {
       setActiveSitemapUid(sitemapUid);
     }
-  }, [sitemapUid, activeSitemapUid]);
+  }, [sitemapUid]);
 
   useEffect(() => {
     if (!activeSitemapUid) return;
     localStorage.setItem('currentSitemapUid', activeSitemapUid);
   }, [activeSitemapUid]);
-
-  useEffect(() => {
-    if (!activeSitemapUid) {
-      setSitemapSearch('');
-      return;
-    }
-
-    const selected = sitemaps.find((s) => s.sitemap_uid === activeSitemapUid);
-    if (selected) {
-      setSitemapSearch(selected.sitemap_uid);
-    }
-  }, [activeSitemapUid, sitemaps]);
 
   useEffect(() => {
     if (!activeSitemapUid) {
@@ -215,8 +187,32 @@ export default function Dashboard({
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [isUserMenuOpen]);
 
+  // Check if user has seen the tour
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem('dashboardTourCompleted');
+    if (!hasSeenTour) {
+      // Start tour after a short delay to let the page load
+      const timer = setTimeout(() => {
+        setRunTour(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleTourFinish = () => {
+    setRunTour(false);
+    localStorage.setItem('dashboardTourCompleted', 'true');
+  };
+
+  const handleStartTour = () => {
+    setRunTour(true);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50 relative">
+      {/* Tour Component */}
+      <DashboardTour run={runTour} onFinish={handleTourFinish} isDarkMode={isDarkMode} />
+
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="px-6 py-4 flex justify-between items-start gap-4">
           <div>
@@ -228,29 +224,24 @@ export default function Dashboard({
            
 
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg border border-gray-200">
-              <label htmlFor="sitemap-select" className="text-sm font-medium text-gray-700">Sitemap</label>
-              <input
+              <label htmlFor="sitemap-select" className="text-sm font-medium text-gray-700">Product</label>
+              <select
                 id="sitemap-select"
-                list="sitemap-options"
-                value={sitemapSearch}
+                value={activeSitemapUid}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  setSitemapSearch(value);
-                  const exactMatch = sitemaps.find((s) => s.sitemap_uid === value);
-                  if (exactMatch) {
-                    setActiveSitemapUid(exactMatch.sitemap_uid);
-                  }
+                  setActiveSitemapUid(e.target.value);
                 }}
-                placeholder="Type sitemap id"
                 className="text-sm bg-white border border-gray-300 rounded-md px-2 py-1 text-gray-900 min-w-[210px]"
-              />
-              <datalist id="sitemap-options">
-                {filteredSitemaps.map((sitemap) => (
+              >
+                {!activeSitemapUid && (
+                  <option value="">Select product</option>
+                )}
+                {sitemaps.map((sitemap) => (
                   <option key={sitemap.sitemap_uid} value={sitemap.sitemap_uid}>
-                    {sitemap.name ?? sitemap.sitemap_uid}
+                    {formatSitemapLabel(sitemap)}
                   </option>
                 ))}
-              </datalist>
+              </select>
             </div>
 
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg border border-gray-200">
@@ -271,19 +262,23 @@ export default function Dashboard({
             </div>
 
             <button
+              data-tour="new-scrape"
               onClick={onNewScrape}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
+              title="Start a new web scraping job"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               New Scrape
             </button>
- <button
+
+            <button
+              data-tour="theme-toggle"
               onClick={onToggleTheme}
               className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={isDarkMode ? 'Light mode' : 'Dark mode'}
+              title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDarkMode ? (
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,8 +290,21 @@ export default function Dashboard({
                 </svg>
               )}
             </button>
+
+            <button
+              onClick={handleStartTour}
+              className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              aria-label="Start tour"
+              title="Start guided tour"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+
             <div className="relative" ref={userMenuRef}>
               <button
+                data-tour="user-menu"
                 onClick={() => setIsUserMenuOpen((value) => !value)}
                 className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                 aria-label="Open user menu"
@@ -352,6 +360,7 @@ export default function Dashboard({
 
       <div className="flex-1 flex overflow-hidden">
         <div
+          data-tour="sidebar"
           className={`bg-white border-r border-gray-200 overflow-y-auto transition-all duration-300 ${
             isSidebarCollapsed ? 'w-0' : 'w-64'
           }`}
@@ -368,6 +377,7 @@ export default function Dashboard({
         </div>
 
         <button
+          data-tour="sidebar-toggle"
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white border border-gray-300 rounded-r-lg shadow-lg hover:bg-gray-50 transition-all z-30 p-2"
           style={{ left: isSidebarCollapsed ? '0' : '256px' }}
@@ -388,6 +398,7 @@ export default function Dashboard({
             <div className="bg-white border-b border-gray-200 p-4">
               <div className="grid grid-cols-3 gap-4">
               <DropZone
+                dataTour="rows-zone"
                 title="Rows"
                 items={builder.rows}
                 onRemove={(item) => {
@@ -414,6 +425,7 @@ export default function Dashboard({
               />
 
               <DropZone
+                dataTour="columns-zone"
                 title="Columns"
                 items={builder.columns}
                 onRemove={(item) => {
@@ -440,6 +452,7 @@ export default function Dashboard({
               />
 
               <DropZone
+                dataTour="values-zone"
                 title="Values"
                 items={builder.measures}
                 onRemove={(item) => {
@@ -500,9 +513,10 @@ interface DropZoneProps {
   color: 'blue' | 'purple' | 'green';
   acceptType?: 'dimension' | 'measure';
   minItems?: number;
+  dataTour?: string;
 }
 
-function DropZone({ title, items, onRemove, onClear, onDrop, color, minItems = 0 }: DropZoneProps) {
+function DropZone({ title, items, onRemove, onClear, onDrop, color, minItems = 0, dataTour }: DropZoneProps) {
   const [isDragOver, setIsDragOver] = React.useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -555,7 +569,7 @@ function DropZone({ title, items, onRemove, onClear, onDrop, color, minItems = 0
   const canClear = items.length > minItems;
 
   return (
-    <div>
+    <div data-tour={dataTour}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-gray-700 uppercase">{title}</span>

@@ -10,6 +10,7 @@ interface ScraperProps {
 
 export default function Scraper({ onComplete, onSessionExpired, onBackToDashboard }: ScraperProps) {
   const [sitemapUid, setSitemapUid] = useState('');
+  const [lastTriggeredSitemapUid, setLastTriggeredSitemapUid] = useState('');
   const [jobId, setJobId] = useState<number | null>(null);
   const [status, setStatus] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -17,17 +18,26 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
   const [showSkippedModal, setShowSkippedModal] = useState(false);
 
   const handleTrigger = async () => {
-    if (!sitemapUid.trim()) {
+    const normalizedSitemapUid = sitemapUid.trim();
+
+    if (!normalizedSitemapUid) {
       alert('Please enter a sitemap UID');
       return;
     }
 
+    setSitemapUid(normalizedSitemapUid);
+    setLastTriggeredSitemapUid(normalizedSitemapUid);
     setIsLoading(true);
+    setStatus('');
+    setShowSkippedModal(false);
+    setShowPopup(false);
+    
     try {
-      const response = await triggerScrape(sitemapUid);
+      const response = await triggerScrape(normalizedSitemapUid);
       
       // Check if scraping was skipped (already scraped today)
       if (response.status === 'skipped') {
+        console.log('[Scraper] Already scraped today, showing modal');
         setIsLoading(false);
         setShowSkippedModal(true);
         return;
@@ -51,18 +61,31 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
   useEffect(() => {
     if (!jobId) return;
 
+    console.log('[Scraper] Starting status polling for job:', jobId);
+
     const interval = setInterval(async () => {
       try {
         const statusResponse = await getJobStatus(jobId);
+        console.log('[Scraper] Status update:', statusResponse.status, 'for job:', jobId);
         setStatus(statusResponse.status);
 
         if (statusResponse.status === 'finished') {
           clearInterval(interval);
           setIsLoading(false);
-          setShowPopup(true);
+          
+          // Always navigate to dashboard when finished
+          const completedSitemapUid = (lastTriggeredSitemapUid || sitemapUid).trim();
+          console.log('[Scraper] Job finished! Navigating to dashboard with sitemap:', completedSitemapUid);
+          
+          // Small delay to ensure status is visible before navigation
+          setTimeout(() => {
+            console.log('[Scraper] Executing navigation now...');
+            onComplete(completedSitemapUid);
+          }, 1000);
         } else if (statusResponse.status === 'failed') {
           clearInterval(interval);
           setIsLoading(false);
+          console.error('[Scraper] Job failed');
           alert('Scraping failed');
         }
       } catch (error) {
@@ -74,8 +97,11 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
       }
     }, 3000);
 
-    return () => clearInterval(interval);
-  }, [jobId, onSessionExpired]);
+    return () => {
+      console.log('[Scraper] Cleaning up status polling for job:', jobId);
+      clearInterval(interval);
+    };
+  }, [jobId, lastTriggeredSitemapUid, sitemapUid, onComplete, onSessionExpired]);
 
   const getStatusColor = () => {
     switch (status) {
@@ -175,12 +201,18 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
                 </div>
                 <div className={`inline-block px-3 py-1.5 rounded-md border text-sm font-medium ${getStatusColor()}`}>
                   {status.toUpperCase()}
+                  {status === 'ingesting' && ' - Saving to database...'}
                 </div>
                 {isLoading && (
                   <div className="mt-3">
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full animate-pulse w-full"></div>
                     </div>
+                    {status === 'ingesting' && (
+                      <p className="text-xs text-gray-600 mt-2 text-center">
+                        Processing scraped data, this may take a moment...
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -206,7 +238,7 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
                 Your data has been successfully collected and is ready for analysis.
               </p>
               <button
-                onClick={() => onComplete(sitemapUid)}
+                onClick={() => onComplete((lastTriggeredSitemapUid || sitemapUid).trim())}
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 View Analytics Dashboard →
@@ -232,12 +264,23 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
               <p className="text-gray-600 mb-6">
                 This sitemap was already scraped today. You can view the existing data in the analytics dashboard.
               </p>
-              <button
-                onClick={() => onComplete(sitemapUid)}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
-              >
-                View Analytics Dashboard →
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSkippedModal(false)}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-all"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSkippedModal(false);
+                    onComplete((lastTriggeredSitemapUid || sitemapUid).trim());
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  View Dashboard →
+                </button>
+              </div>
             </div>
           </div>
         </div>

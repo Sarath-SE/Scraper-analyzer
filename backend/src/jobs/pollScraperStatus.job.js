@@ -3,13 +3,14 @@ const db = require('../db');
 const scraper = require('../services/scraper.service');
 const ingestion = require('../services/ingestion.service');
 
-cron.schedule('*/2 * * * *', async () => {
+// Poll every minute for active scrape jobs
+cron.schedule('* * * * *', async () => {
   console.log('[PollJob] Checking running scrape jobs...');
 
   let jobs;
   try {
     jobs = await db.query(
-      `SELECT * FROM scrape_jobs WHERE status='running'`
+      `SELECT * FROM scrape_jobs WHERE status='running' OR status='ingesting'`
     );
   } catch (err) {
     console.error('[PollJob] Failed to fetch jobs:', err.message);
@@ -18,6 +19,12 @@ cron.schedule('*/2 * * * *', async () => {
 
   for (const job of jobs.rows) {
     try {
+      // Skip if already ingesting (being processed)
+      if (job.status === 'ingesting') {
+        console.log(`[PollJob] Job ${job.id} is currently ingesting, skipping...`);
+        continue;
+      }
+
       const status = await scraper.getJobStatus(job.scraper_job_id);
       console.log(
         `[PollJob] Job ${job.id} (scraper ${job.scraper_job_id}) status: ${status}`

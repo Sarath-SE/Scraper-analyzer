@@ -74,13 +74,34 @@ await client.query(
     // =====================================================
     const rows = await scraper.getScrapedData(scrapeJob.scraper_job_id);
 
+    // If sitemap name is missing, backfill it from scraped payload.
+    // Note: `description` is product-level text; we use the first available value.
+    const scrapedDescription = rows.find((row) => (
+      typeof row?.description === 'string' && row.description.trim()
+    ))?.description?.trim();
+
+    if (scrapedDescription) {
+      await client.query(
+        `
+        UPDATE sitemaps
+        SET name = $2
+        WHERE id = $1
+        `,
+        [scrapeJob.sitemap_id, scrapedDescription]
+      );
+    }
+
     let rowCount = 0;
+    const seenRowHashes = new Set();
 
     for (const row of rows) {
-      // =====================================================
-      // 3️⃣ STABLE PRODUCT IDENTITY
-      // =====================================================
       const rowHash = normalizer.hashRow(row);
+
+      // Skip duplicate rows within the same scrape payload.
+      if (seenRowHashes.has(rowHash)) {
+        continue;
+      }
+      seenRowHashes.add(rowHash);
 
       // =====================================================
       // 4️⃣ RAW SCRAPE STORAGE
@@ -93,6 +114,8 @@ await client.query(
           row_hash
         )
         VALUES ($1, $2, $3)
+        ON CONFLICT (snapshot_id, row_hash)
+        DO UPDATE SET raw_payload = EXCLUDED.raw_payload
         `,
         [snapshotId, row, rowHash]
       );
