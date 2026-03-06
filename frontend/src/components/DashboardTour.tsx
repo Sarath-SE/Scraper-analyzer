@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
+import Joyride, { STATUS } from 'react-joyride';
 
 interface DashboardTourProps {
   run: boolean;
