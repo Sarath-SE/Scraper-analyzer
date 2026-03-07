@@ -199,6 +199,25 @@
   color: #e2e8f0 !important;
 }
 
+/* Navbar Gradient - Dark Mode */
+[data-theme='dark'] .bg-gradient-to-r.from-slate-50 {
+  background: linear-gradient(to right, #1a1f2e, #1e3a5f) !important;
+}
+
+/* Stats Bar Background - Dark Mode */
+[data-theme='dark'] .bg-white\/50 {
+  background-color: rgba(26, 31, 46, 0.5) !important;
+}
+
+/* Gradient Buttons - Dark Mode */
+[data-theme='dark'] .bg-gradient-to-r.from-blue-600 {
+  background: linear-gradient(to right, #2563eb, #1d4ed8) !important;
+}
+
+[data-theme='dark'] .hover\:from-blue-700:hover {
+  background: linear-gradient(to right, #1d4ed8, #1e40af) !important;
+}
+
 [data-theme='dark'] button.bg-white:hover {
   background-color: #252b3d !important;
 }
@@ -252,6 +271,15 @@
 
 [data-theme='dark'] .hover\:bg-green-100:hover {
   background-color: #2a5d4e !important;
+}
+
+/* Navbar Button Hover States - Dark Mode */
+[data-theme='dark'] .hover\:border-blue-400:hover {
+  border-color: #60a5fa !important;
+}
+
+[data-theme='dark'] .hover\:bg-blue-50:hover {
+  background-color: #1e3a5f !important;
 }
 
 /* Table Specific */
@@ -326,4 +354,82 @@
 [data-theme='dark'] .react-joyride__tooltip button[data-action="back"],
 [data-theme='dark'] .react-joyride__tooltip button[data-action="skip"] {
   color: #94a3b8 !important;
+}
+
+/* Login Page Dark Mode (if needed in future) */
+[data-theme='dark'] input[type="password"] + button svg,
+[data-theme='dark'] input[type="text"] + button svg {
+  color: #94a3b8 !important;
+}
+
+[data-theme='dark'] input[type="password"] + button:hover svg,
+[data-theme='dark'] input[type="text"] + button:hover svg {
+  color: #cbd5e1 !important;
+}
+
+/* ============================================
+   SCRAPER PAGE - Dark Mode
+   ============================================ */
+
+/* Scraper Page Background Gradient */
+[data-theme='dark'] .bg-gradient-to-br.from-slate-900 {
+  background: linear-gradient(to bottom right, #0a0e1a, #1e3a5f, #0a0e1a) !important;
+}
+
+/* Scraper Card Background */
+[data-theme='dark'] .bg-white\/95 {
+  background-color: rgba(26, 31, 46, 0.95) !important;
+}
+
+/* Scraper Card Border */
+[data-theme='dark'] .border-white\/20 {
+  border-color: rgba(61, 74, 92, 0.3) !important;
+}
+
+/* Back Button on Scraper Page */
+[data-theme='dark'] .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme='dark'] .hover\:bg-white\/20:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme='dark'] .border-white\/20 {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme='dark'] .text-white\/95 {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Scraper Status Display */
+[data-theme='dark'] .bg-gradient-to-br.from-gray-50 {
+  background: linear-gradient(to bottom right, #1a1f2e, #1e3a5f) !important;
+}
+
+/* Scraper Modal Backgrounds */
+[data-theme='dark'] .bg-black\/60 {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Scraper Animated Blobs - Adjust for dark mode */
+[data-theme='dark'] .bg-purple-500,
+[data-theme='dark'] .bg-blue-500,
+[data-theme='dark'] .bg-indigo-500 {
+  opacity: 0.15 !important;
+}
+
+/* ============================================
+   FULLSCREEN PIVOT TABLE - Dark Mode
+   ============================================ */
+
+/* Fullscreen Modal Background */
+[data-theme='dark'] .fixed.bg-black\/60 {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Fullscreen Table Container */
+[data-theme='dark'] .max-w-\[98vw\].bg-white {
+  background-color: #1a1f2e !important;
 }

@@ -213,25 +213,30 @@ export default function Dashboard({
       {/* Tour Component */}
       <DashboardTour run={runTour} onFinish={handleTourFinish} isDarkMode={isDarkMode} />
 
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="px-6 py-4 flex justify-between items-start gap-4">
+      <div className="bg-gradient-to-r from-slate-50 to-blue-50 border-b-2 border-blue-200 shadow-md">
+        <div className="px-3 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Analytics Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Interactive Pivot Table Builder</p>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Analytics Dashboard
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-600 mt-0.5 font-medium">Interactive Pivot Table Builder</p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="w-full sm:w-auto flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-3">
            
 
-            <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg border border-gray-200">
-              <label htmlFor="sitemap-select" className="text-sm font-medium text-gray-700">Product</label>
+            <div className="flex items-center gap-2 px-2 sm:px-3 py-2 bg-white rounded-lg border-2 border-blue-200 shadow-sm w-full sm:w-auto">
+              <label htmlFor="sitemap-select" className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Product</label>
               <select
                 id="sitemap-select"
                 value={activeSitemapUid}
                 onChange={(e) => {
                   setActiveSitemapUid(e.target.value);
                 }}
-                className="text-sm bg-white border border-gray-300 rounded-md px-2 py-1 text-gray-900 min-w-[210px]"
+                className="text-xs sm:text-sm bg-white border border-gray-300 rounded-md px-2 py-1 text-gray-900 min-w-0 flex-1 sm:min-w-[210px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 {!activeSitemapUid && (
                   <option value="">Select product</option>
@@ -244,18 +249,18 @@ export default function Dashboard({
               </select>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg border border-gray-200">
-              <label htmlFor="month-filter" className="text-sm font-medium text-gray-700">Month</label>
+            <div className="flex items-center gap-2 px-2 sm:px-3 py-2 bg-white rounded-lg border-2 border-blue-200 shadow-sm w-full sm:w-auto">
+              <label htmlFor="month-filter" className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Month</label>
               <input
                 id="month-filter"
                 type="month"
                 value={monthFilter}
                 onChange={(e) => setMonthFilter(e.target.value)}
-                className="text-sm bg-white border border-gray-300 rounded-md px-2 py-1 text-gray-900"
+                className="text-xs sm:text-sm bg-white border border-gray-300 rounded-md px-2 py-1 text-gray-900 flex-1 sm:flex-initial focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <button
                 onClick={() => setMonthFilter('')}
-                className="px-2 py-1 text-xs text-gray-700 border border-gray-300 rounded-md bg-white hover:bg-gray-50"
+                className="px-2 py-1 text-xs text-gray-700 border border-gray-300 rounded-md bg-white hover:bg-blue-50 hover:border-blue-400 transition-colors whitespace-nowrap"
               >
                 Clear
               </button>
@@ -264,28 +269,28 @@ export default function Dashboard({
             <button
               data-tour="new-scrape"
               onClick={onNewScrape}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
+              className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs sm:text-sm font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
               title="Start a new web scraping job"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              New Scrape
+              <span className="sm:inline">New Scrape</span>
             </button>
 
             <button
               data-tour="theme-toggle"
               onClick={onToggleTheme}
-              className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg border-2 border-blue-200 bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm"
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDarkMode ? (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v2m0 14v2m7-9h2M3 12H5m11.314 6.314l1.414 1.414M6.272 6.272l1.414 1.414m0 8.9l-1.414 1.414m12.728-12.728l-1.414 1.414M12 7a5 5 0 100 10 5 5 0 000-10z" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 118.646 3.646 7 7 0 0020.354 15.354z" />
                 </svg>
               )}
@@ -293,11 +298,11 @@ export default function Dashboard({
 
             <button
               onClick={handleStartTour}
-              className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg border-2 border-blue-200 bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm"
               aria-label="Start tour"
               title="Start guided tour"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </button>
@@ -306,24 +311,24 @@ export default function Dashboard({
               <button
                 data-tour="user-menu"
                 onClick={() => setIsUserMenuOpen((value) => !value)}
-                className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg border-2 border-blue-200 bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm"
                 aria-label="Open user menu"
                 title="User menu"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A11.952 11.952 0 0112 15.75c2.54 0 4.894.79 6.879 2.054M15 9a3 3 0 11-6 0 3 3 0 016 0zm6 3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
 
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-40 p-3">
-                  <div className="text-sm font-semibold text-gray-900 break-words">
+                <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-40 p-3">
+                  <div className="text-xs sm:text-sm font-semibold text-gray-900 break-words">
                     {user.full_name || user.email}
                   </div>
                   <div className="text-xs text-gray-500 mt-1 break-words">{user.email}</div>
                   <button
                     onClick={onSignOut}
-                    className="mt-3 w-full px-3 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors text-left"
+                    className="mt-3 w-full px-3 py-2 bg-white text-gray-700 text-xs sm:text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 transition-colors text-left"
                   >
                     Logout
                   </button>
@@ -333,19 +338,31 @@ export default function Dashboard({
           </div>
         </div>
 
-        <div className="px-6 pb-4 text-xs text-gray-600 flex items-center gap-4">
-          <span>
-            Active: <strong>{activeSitemapUid || 'None'}</strong>
+        <div className="px-3 sm:px-6 pb-3 sm:pb-4 text-xs flex flex-wrap items-center gap-2 sm:gap-4 text-gray-700 bg-white/50 backdrop-blur-sm">
+          <span className="whitespace-nowrap flex items-center gap-1">
+            <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            Active: <strong className="text-gray-900">{activeSitemapUid || 'None'}</strong>
           </span>
-          <span>
-            Snapshots: <strong>{selectedSitemap?.snapshot_count ?? 0}</strong>
+          <span className="whitespace-nowrap flex items-center gap-1">
+            <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+            </svg>
+            Snapshots: <strong className="text-gray-900">{selectedSitemap?.snapshot_count ?? 0}</strong>
           </span>
-          <span>
-            Last Snapshot: <strong>{selectedSitemap?.last_snapshot_date ?? 'N/A'}</strong>
+          <span className="whitespace-nowrap flex items-center gap-1">
+            <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Last Snapshot: <strong className="text-gray-900">{selectedSitemap?.last_snapshot_date ?? 'N/A'}</strong>
           </span>
           {monthFilter && (
-            <span>
-              Month: <strong>{monthFilter}</strong>
+            <span className="whitespace-nowrap flex items-center gap-1 bg-blue-100 px-2 py-1 rounded-md border border-blue-300">
+              <svg className="w-3 h-3 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Month: <strong className="text-blue-900">{monthFilter}</strong>
             </span>
           )}
         </div>
@@ -362,7 +379,7 @@ export default function Dashboard({
         <div
           data-tour="sidebar"
           className={`bg-white border-r border-gray-200 overflow-y-auto transition-all duration-300 ${
-            isSidebarCollapsed ? 'w-0' : 'w-64'
+            isSidebarCollapsed ? 'w-0' : 'w-56 sm:w-64'
           }`}
         >
           {!isSidebarCollapsed && (
@@ -379,12 +396,12 @@ export default function Dashboard({
         <button
           data-tour="sidebar-toggle"
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white border border-gray-300 rounded-r-lg shadow-lg hover:bg-gray-50 transition-all z-30 p-2"
-          style={{ left: isSidebarCollapsed ? '0' : '256px' }}
+          className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white border border-gray-300 rounded-r-lg shadow-lg hover:bg-gray-50 transition-all z-30 p-1.5 sm:p-2"
+          style={{ left: isSidebarCollapsed ? '0' : window.innerWidth < 640 ? '224px' : '256px' }}
           title={isSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
         >
           <svg
-            className={`w-4 h-4 text-gray-600 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-0' : 'rotate-180'}`}
+            className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-0' : 'rotate-180'}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -395,8 +412,8 @@ export default function Dashboard({
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {!isSidebarCollapsed && (
-            <div className="bg-white border-b border-gray-200 p-4">
-              <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white border-b border-gray-200 p-2 sm:p-3 md:p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
               <DropZone
                 dataTour="rows-zone"
                 title="Rows"
@@ -478,22 +495,22 @@ export default function Dashboard({
             </div>
           )}
 
-          <div className={`flex-1 overflow-hidden bg-gray-50 ${isSidebarCollapsed ? 'p-2' : 'p-6'}`}>
+          <div className={`flex-1 overflow-hidden bg-gray-50 ${isSidebarCollapsed ? 'p-2 sm:p-4 md:p-6' : 'p-2 sm:p-3 md:p-6'}`}>
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mb-4"></div>
-                  <p className="text-gray-600 font-medium">Loading pivot data...</p>
+                  <div className="inline-block animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-gray-200 border-t-blue-600 mb-4"></div>
+                  <p className="text-gray-600 font-medium text-sm sm:text-base">Loading pivot data...</p>
                 </div>
               </div>
             ) : data ? (
               <PivotTable data={data} rowKeys={builder.rows} measures={builder.measures} />
             ) : (
               <div className="flex items-center justify-center h-full">
-                <div className="text-center bg-white rounded-lg border border-gray-200 p-12 shadow-sm">
-                  <div className="text-5xl mb-4">No Data</div>
-                  <p className="text-gray-900 font-semibold text-lg mb-2">Configure Your Pivot Table</p>
-                  <p className="text-gray-500 text-sm">Use sitemap and month filter, then drag fields to drop zones</p>
+                <div className="text-center bg-white rounded-lg border border-gray-200 p-6 sm:p-8 md:p-12 shadow-sm max-w-md mx-auto">
+                  <div className="text-4xl sm:text-5xl mb-4">📊</div>
+                  <p className="text-gray-900 font-semibold text-base sm:text-lg mb-2">Configure Your Pivot Table</p>
+                  <p className="text-gray-500 text-xs sm:text-sm">Use sitemap and month filter, then drag fields to drop zones</p>
                 </div>
               </div>
             )}

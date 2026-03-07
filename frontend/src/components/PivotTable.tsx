@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { PivotResponse } from '../types/pivot';
 
 interface PivotTableProps {
@@ -11,6 +12,8 @@ export default function PivotTable({
   rowKeys,
   measures,
 }: PivotTableProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const formatMeasureLabel = (measure: string) => {
     if (measure === 'qty_sold' || measure === 'quantity_sold') return 'Qty Sold';
     if (measure === 'avg_price') return 'Avg Price';
@@ -171,31 +174,229 @@ export default function PivotTable({
   }
 
   return (
-    <div className="h-full flex flex-col bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-      {/* Table Header */}
-      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Pivot Results</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {data.rows.length} rows × {data.columns.length} columns
-          </p>
-        </div>
-        <button 
-          data-tour="export-csv"
-          onClick={handleExport}
-          className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"
-          title="Export pivot table to CSV file"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          Export CSV
-        </button>
-      </div>
+    <>
+      {/* Fullscreen Modal */}
+      {isFullscreen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full h-full max-w-[98vw] max-h-[98vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            {/* Fullscreen Header */}
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50 flex-shrink-0">
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Pivot Results - Fullscreen</h3>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                  {data.rows.length} rows × {data.columns.length} columns
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleExport}
+                  className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center gap-2"
+                  title="Export pivot table to CSV file"
+                >
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="hidden sm:inline">Export CSV</span>
+                  <span className="sm:hidden">Export</span>
+                </button>
+                <button
+                  onClick={() => setIsFullscreen(false)}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
+                  title="Exit fullscreen"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
 
-      {/* Table Container with Horizontal Scroll */}
+            {/* Fullscreen Table */}
+            <div className="flex-1 overflow-auto">
+              <table className="min-w-full border-collapse text-xs sm:text-sm">
+                <thead className="sticky top-0 z-10 bg-white">
+                  {/* Column Headers Row 1 */}
+                  <tr className="bg-gray-100 border-b border-gray-300">
+                    {rowKeys.map((k, idx) => (
+                      <th
+                        key={k}
+                        rowSpan={2}
+                        className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300 bg-gray-100 sticky left-0 z-20"
+                        style={{ left: `${idx * 150}px` }}
+                      >
+                        {k}
+                      </th>
+                    ))}
+
+                    {data.columns.map(col => (
+                      <th
+                        key={col}
+                        colSpan={measures.length}
+                        className="px-4 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-blue-50"
+                      >
+                        {new Date(col).toLocaleString()}
+                      </th>
+                    ))}
+
+                    <th
+                      colSpan={measures.length}
+                      className="px-4 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-amber-50"
+                    >
+                      Totals
+                    </th>
+                  </tr>
+
+                  {/* Column Headers Row 2 - Measures */}
+                  <tr className="bg-gray-50 border-b border-gray-300">
+                    {data.columns.flatMap(col =>
+                      measures.map(m => (
+                        <th
+                          key={`${col}-${m}`}
+                          className="px-4 py-2 text-right text-xs font-medium text-gray-600 border-r border-gray-200 bg-green-50"
+                        >
+                          {formatMeasureLabel(m)}
+                        </th>
+                      ))
+                    )}
+
+                    {measures.map(m => (
+                      <th
+                        key={`totals-${m}`}
+                        className="px-4 py-2 text-right text-xs font-medium text-gray-700 border-r border-gray-200 bg-amber-100"
+                      >
+                        {`${formatMeasureLabel(m).toUpperCase()}`}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {data.rows.map((row, i) => (
+                    <tr 
+                      key={i} 
+                      className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors border-b border-gray-200`}
+                    >
+                      {rowKeys.map((k, idx) => (
+                        <td
+                          key={k}
+                          className="px-4 py-3 text-sm text-gray-900 font-medium border-r border-gray-200 bg-inherit sticky left-0 z-10"
+                          style={{ 
+                            left: `${idx * 150}px`,
+                            minWidth: '150px',
+                            maxWidth: '150px'
+                          }}
+                        >
+                          {row[k] ?? '-'}
+                        </td>
+                      ))}
+
+                      {data.columns.flatMap(col =>
+                        measures.map(m => {
+                          const value = (row.values?.[col] as any)?.[m] ?? 0;
+                          return (
+                            <td
+                              key={`${i}-${col}-${m}`}
+                              className={`px-4 py-3 text-sm text-right border-r border-gray-200 font-mono ${
+                                value > 0 ? 'text-gray-900' : 'text-gray-400'
+                              }`}
+                            >
+                              {formatValue(m, value)}
+                            </td>
+                          );
+                        })
+                      )}
+
+                      {measures.map((m) => (
+                        <td
+                          key={`row-total-${i}-${m}`}
+                          className="px-4 py-3 text-sm text-right border-r border-amber-200 font-mono text-gray-900 bg-amber-50"
+                        >
+                          {formatValue(m, getRowTotalLikeExcel(row, m))}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+
+                  {/* Total Row */}
+                  <tr className="bg-blue-100 border-t-2 border-blue-300 font-semibold sticky bottom-0">
+                    {rowKeys.map((_, idx) => (
+                      <td 
+                        key={idx} 
+                        className="px-4 py-3 text-sm text-gray-900 border-r border-blue-200 bg-blue-100 sticky left-0 z-10"
+                        style={{ left: `${idx * 150}px` }}
+                      >
+                        {idx === 0 ? 'Total' : ''}
+                      </td>
+                    ))}
+
+                    {data.columns.flatMap(col =>
+                      measures.map(m => (
+                        <td
+                          key={`total-${col}-${m}`}
+                          className="px-4 py-3 text-sm text-right border-r border-blue-200 font-mono text-gray-900"
+                        >
+                          {formatValue(m, (data.columnTotals?.[col] as any)?.[m] ?? 0)}
+                        </td>
+                      ))
+                    )}
+
+                    {measures.map((m) => {
+                      const grandTotal = getGrandTotalLikeExcel(m);
+                      return (
+                        <td
+                          key={`grand-total-${m}`}
+                          className="px-4 py-3 text-sm text-right border-r border-blue-200 font-mono text-gray-900 bg-blue-200"
+                        >
+                          {formatValue(m, grandTotal)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Normal View */}
+      <div className="h-full flex flex-col bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+        {/* Table Header - Responsive */}
+        <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-50">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Pivot Results</h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {data.rows.length} rows × {data.columns.length} columns
+            </p>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+              title="View fullscreen"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+            </button>
+            <button 
+              data-tour="export-csv"
+              onClick={handleExport}
+              className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center justify-center gap-2"
+              title="Export pivot table to CSV file"
+            >
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="hidden sm:inline">Export CSV</span>
+              <span className="sm:hidden">Export</span>
+            </button>
+          </div>
+        </div>
+
+      {/* Table Container with Horizontal Scroll - Responsive */}
       <div className="flex-1 overflow-auto">
-        <table className="min-w-full border-collapse text-sm">
+        <table className="min-w-full border-collapse text-xs sm:text-sm">
           <thead className="sticky top-0 z-10 bg-white">
             {/* Column Headers Row 1 */}
             <tr className="bg-gray-100 border-b border-gray-300">
@@ -339,5 +540,6 @@ export default function PivotTable({
         </table>
       </div>
     </div>
+    </>
   );
 }
