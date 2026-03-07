@@ -32,14 +32,10 @@ export default function LoginPage({ onSignIn }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-gray-50">
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-12 flex-col justify-between relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        
-        <div className="relative z-10">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-12 flex-col gap-15">
+        <div>
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
               <svg viewBox="0 0 24 24" fill="none" className="w-7 h-7 text-blue-600">
@@ -57,21 +53,21 @@ export default function LoginPage({ onSignIn }: LoginPageProps) {
               Transform Web Data Into Actionable Insights
             </h1>
             <p className="text-blue-100 text-lg leading-relaxed">
-              Powerful web scraping analytics platform with real-time pivot tables, automated data collection, and comprehensive reporting.
+              Enterprise-grade web scraping analytics platform with real-time pivot tables, automated data collection, and comprehensive reporting.
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 space-y-4">
+        <div className="space-y-4">
           <div className="flex items-start gap-3 text-white">
             <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
             <div>
-              <h3 className="font-semibold mb-1">Automated Data Collection</h3>
-              <p className="text-blue-100 text-sm">Schedule and manage web scraping jobs with WebScraper.io integration</p>
+              <h3 className="font-semibold mb-1">Lightning Fast</h3>
+              <p className="text-blue-100 text-sm">Real-time data processing and instant analytics</p>
             </div>
           </div>
           
@@ -82,30 +78,30 @@ export default function LoginPage({ onSignIn }: LoginPageProps) {
               </svg>
             </div>
             <div>
-              <h3 className="font-semibold mb-1">Interactive Pivot Analytics</h3>
-              <p className="text-blue-100 text-sm">Build custom reports with drag-and-drop pivot tables and time-series analysis</p>
+              <h3 className="font-semibold mb-1">Interactive Analytics</h3>
+              <p className="text-blue-100 text-sm">Drag-and-drop pivot tables with time-series analysis</p>
             </div>
           </div>
           
           <div className="flex items-start gap-3 text-white">
             <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
             <div>
-              <h3 className="font-semibold mb-1">Real-Time Monitoring</h3>
-              <p className="text-blue-100 text-sm">Track scraping jobs and data updates with live status monitoring</p>
+              <h3 className="font-semibold mb-1">Enterprise Security</h3>
+              <p className="text-blue-100 text-sm">Bank-level encryption and secure data handling</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right Side - Login Form - Responsive */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 bg-gray-50">
+      {/* Right Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-6 sm:mb-8">
+          <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
                 <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2" />
@@ -114,19 +110,19 @@ export default function LoginPage({ onSignIn }: LoginPageProps) {
                 <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2" />
               </svg>
             </div>
-            <span className="text-xl sm:text-2xl font-bold text-gray-900">ScrapeLytics</span>
+            <span className="text-2xl font-bold text-gray-900">ScrapeLytics</span>
           </div>
 
-          <div className="p-4 sm:p-6 md:p-8">
-            <div className="mb-6 sm:mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
-              <p className="text-sm sm:text-base text-gray-600">Sign in to access your analytics dashboard</p>
+          <div className="bg-white rounded-2xl  p-8">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+              <p className="text-gray-600">Sign in to access your analytics dashboard</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email address
+                  Email Address
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -141,7 +137,7 @@ export default function LoginPage({ onSignIn }: LoginPageProps) {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@company.com"
                     autoComplete="username"
-                    className="block w-full pl-10 pr-3 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -162,12 +158,12 @@ export default function LoginPage({ onSignIn }: LoginPageProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
-                    className="block w-full pl-10 pr-12 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
@@ -203,21 +199,19 @@ export default function LoginPage({ onSignIn }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 sm:py-3 px-4 text-sm sm:text-base rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Signing in...' : 'Sign in'}
+                {isSubmitting ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
 
-            
+            <p className="mt-6 text-center text-sm text-gray-600">
+              Need access?{' '}
+              <a href="#" className="font-semibold text-blue-600 hover:text-blue-700">
+                Contact Administrator
+              </a>
+            </p>
           </div>
-
-          <p className="mt-8 text-center text-sm text-gray-600">
-            Need access?{' '}
-            <a href="#" className="font-semibold text-blue-600 hover:text-blue-700">
-              Contact your administrator
-            </a>
-          </p>
         </div>
       </div>
     </div>
