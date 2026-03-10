@@ -319,6 +319,19 @@
   background: #4d5a6c;
 }
 
+/* Dark mode thin scrollbar for drop zones */
+[data-theme='dark'] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #4d5a6c;
+}
+
+[data-theme='dark'] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #5d6a7c;
+}
+
+[data-theme='dark'] .custom-scrollbar {
+  scrollbar-color: #4d5a6c transparent;
+}
+
 /* Accent Glow Effects */
 [data-theme='dark'] .bg-blue-600 {
   box-shadow: 0 0 20px rgba(96, 165, 250, 0.15) !important;
@@ -432,4 +445,108 @@
 /* Fullscreen Table Container */
 [data-theme='dark'] .max-w-\[98vw\].bg-white {
   background-color: #1a1f2e !important;
+}
+
+/* ============================================
+   PIVOT TABLE IMPROVEMENTS
+   ============================================ */
+
+/* Better table scrolling */
+.pivot-table-container {
+  overflow: auto;
+  max-width: 100%;
+}
+
+/* Smooth scrolling */
+.pivot-table-container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.pivot-table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 5px;
+}
+
+.pivot-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+}
+
+.pivot-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Table cell text handling */
+.pivot-table-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure table doesn't break layout */
+.pivot-table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Sticky column shadow effect */
+.pivot-table th.sticky,
+.pivot-table td.sticky {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+}
+
+.pivot-table thead th.sticky {
+  z-index: 20;
+}
+
+/* Add shadow to the last sticky column for better visual separation */
+.pivot-table th[style*="left: 120px"]::after,
+.pivot-table td[style*="left: 120px"]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -8px;
+  bottom: 0;
+  width: 8px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.08), transparent);
+  pointer-events: none;
+}
+
+/* Custom thin scrollbar for drop zones */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Firefox thin scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Better responsive behavior */
+@media (max-width: 768px) {
+  .pivot-table th,
+  .pivot-table td {
+    padding: 0.5rem !important;
+    font-size: 0.75rem !important;
+  }
 }

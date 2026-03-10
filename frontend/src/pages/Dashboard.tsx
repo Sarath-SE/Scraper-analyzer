@@ -30,6 +30,44 @@ const ALL_MEASURES: PivotMeasure[] = [
   'estimated_sales',
 ];
 
+// Helper function to ensure manufacturer and part_number are always in rows
+const ensureRequiredRows = (rows: string[], allDimensions: string[]): string[] => {
+  const result = [...rows];
+  
+  // Check if manufacturer exists in dimensions
+  const hasManufacturer = allDimensions.some(d => d === 'manufacturer');
+  const hasPartNumber = allDimensions.some(d => d === 'part_number' || d === 'product_type');
+  
+  // Ensure manufacturer is first
+  if (hasManufacturer && !result.includes('manufacturer')) {
+    result.unshift('manufacturer');
+  } else if (hasManufacturer && result[0] !== 'manufacturer') {
+    const idx = result.indexOf('manufacturer');
+    if (idx > 0) {
+      result.splice(idx, 1);
+      result.unshift('manufacturer');
+    }
+  }
+  
+  // Ensure part_number is second (if it exists)
+  if (hasPartNumber) {
+    const partNumberField = allDimensions.find(d => d === 'part_number' || d === 'product_type');
+    if (partNumberField) {
+      const idx = result.indexOf(partNumberField);
+      if (idx === -1) {
+        // Insert at position 1
+        result.splice(1, 0, partNumberField);
+      } else if (idx !== 1) {
+        // Move to position 1
+        result.splice(idx, 1);
+        result.splice(1, 0, partNumberField);
+      }
+    }
+  }
+  
+  return result;
+};
+
 interface DashboardProps {
   onNewScrape: () => void;
   onSignOut: () => void;
@@ -63,7 +101,7 @@ export default function Dashboard({
   const userMenuRef = useRef<HTMLDivElement | null>(null);
 
   const [builder, setBuilder] = useState<PivotBuilderState>({
-    rows: ['manufacturer'],
+    rows: ['manufacturer', 'product_type'],
     columns: ['snapshot_time'],
     measures: ['quantity'],
   });
@@ -152,13 +190,13 @@ export default function Dashboard({
 
         return {
           ...current,
-          rows: nextRows,
+          rows: ensureRequiredRows(nextRows, dimensions),
         };
       }
 
       return {
         ...current,
-        rows: [dimensions[0]],
+        rows: ensureRequiredRows([dimensions[0]], dimensions),
       };
     });
   }, [dimensions]);
@@ -446,18 +484,29 @@ export default function Dashboard({
                 title="Rows"
                 items={builder.rows}
                 onRemove={(item) => {
+                  // Don't allow removing manufacturer or part_number
+                  if (item === 'manufacturer' || item === 'part_number' || item === 'product_type') {
+                    return;
+                  }
                   if (builder.rows.length > 1) {
                     setBuilder({ ...builder, rows: builder.rows.filter((i) => i !== item) });
                   }
                 }}
                 onClear={() => {
-                  if (builder.rows.length > 0) {
+                  // Keep only required rows when clearing
+                  const requiredRows = builder.rows.filter(r => 
+                    r === 'manufacturer' || r === 'part_number' || r === 'product_type'
+                  );
+                  if (requiredRows.length > 0) {
+                    setBuilder({ ...builder, rows: requiredRows });
+                  } else if (builder.rows.length > 0) {
                     setBuilder({ ...builder, rows: [builder.rows[0]] });
                   }
                 }}
                 onDrop={(item) => {
+                  const newRows = builder.rows.includes(item) ? builder.rows : [...builder.rows, item];
                   const newBuilder = {
-                    rows: builder.rows.includes(item) ? builder.rows : [...builder.rows, item],
+                    rows: ensureRequiredRows(newRows, dimensions),
                     columns: builder.columns.filter((i) => i !== item),
                     measures: builder.measures,
                   };
@@ -633,7 +682,7 @@ function DropZone({ title, items, onRemove, onClear, onDrop, color, minItems = 0
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`min-h-[80px] p-3 border-2 border-dashed rounded-lg transition-colors ${
+        className={`h-[100px] p-3 border-2 border-dashed rounded-lg transition-colors overflow-y-auto custom-scrollbar ${
           isDragOver
             ? colors.dragOver
             : items.length > 0
@@ -646,7 +695,14 @@ function DropZone({ title, items, onRemove, onClear, onDrop, color, minItems = 0
         ) : (
           <div className="flex flex-wrap gap-2">
             {items.map((item) => {
-              const isLocked = minItems > 0 && items.length <= minItems;
+              // Check if this is a required row (manufacturer or part_number)
+              const isRequiredRow = title === 'Rows' && (
+                item === 'manufacturer' || 
+                item === 'part_number' || 
+                item === 'product_type'
+              );
+              const isLocked = (minItems > 0 && items.length <= minItems) || isRequiredRow;
+              
               return (
                 <div
                   key={item}

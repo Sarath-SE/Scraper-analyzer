@@ -213,8 +213,8 @@ export default function PivotTable({
             </div>
 
             {/* Fullscreen Table */}
-            <div className="flex-1 overflow-auto">
-              <table className="min-w-full border-collapse text-xs sm:text-sm">
+            <div className="flex-1 overflow-auto pivot-table-container">
+              <table className="pivot-table border-collapse text-xs sm:text-sm">
                 <thead className="sticky top-0 z-10 bg-white">
                   {/* Column Headers Row 1 */}
                   <tr className="bg-gray-100 border-b border-gray-300">
@@ -222,10 +222,17 @@ export default function PivotTable({
                       <th
                         key={k}
                         rowSpan={2}
-                        className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300 bg-gray-100 sticky left-0 z-20"
-                        style={{ left: `${idx * 150}px` }}
+                        className={`px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300 bg-gray-100 ${
+                          idx === 0 || idx === 1 ? 'sticky z-20' : ''
+                        }`}
+                        style={{ 
+                          minWidth: '120px',
+                          left: idx === 0 ? '0px' : idx === 1 ? '120px' : undefined
+                        }}
                       >
-                        {formatFieldLabel(k)}
+                        <div className="truncate" title={formatFieldLabel(k)}>
+                          {formatFieldLabel(k)}
+                        </div>
                       </th>
                     ))}
 
@@ -233,7 +240,7 @@ export default function PivotTable({
                       <th
                         key={col}
                         colSpan={measures.length}
-                        className="px-4 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-blue-50"
+                        className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-blue-50 whitespace-nowrap"
                       >
                         {new Date(col).toLocaleString()}
                       </th>
@@ -241,7 +248,7 @@ export default function PivotTable({
 
                     <th
                       colSpan={measures.length}
-                      className="px-4 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-amber-50"
+                      className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-amber-50 whitespace-nowrap"
                     >
                       Totals
                     </th>
@@ -253,7 +260,8 @@ export default function PivotTable({
                       measures.map(m => (
                         <th
                           key={`${col}-${m}`}
-                          className="px-4 py-2 text-right text-xs font-medium text-gray-600 border-r border-gray-200 bg-green-50"
+                          className="px-3 sm:px-4 py-1.5 sm:py-2 text-right text-xs font-medium text-gray-600 border-r border-gray-200 bg-green-50 whitespace-nowrap"
+                          style={{ minWidth: '100px' }}
                         >
                           {formatMeasureLabel(m)}
                         </th>
@@ -263,7 +271,8 @@ export default function PivotTable({
                     {measures.map(m => (
                       <th
                         key={`totals-${m}`}
-                        className="px-4 py-2 text-right text-xs font-medium text-gray-700 border-r border-gray-200 bg-amber-100"
+                        className="px-3 sm:px-4 py-1.5 sm:py-2 text-right text-xs font-medium text-gray-700 border-r border-gray-200 bg-amber-100 whitespace-nowrap"
+                        style={{ minWidth: '100px' }}
                       >
                         {`${formatMeasureLabel(m).toUpperCase()}`}
                       </th>
@@ -280,14 +289,18 @@ export default function PivotTable({
                       {rowKeys.map((k, idx) => (
                         <td
                           key={k}
-                          className="px-4 py-3 text-sm text-gray-900 font-medium border-r border-gray-200 bg-inherit sticky left-0 z-10"
+                          className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 font-medium border-r border-gray-200 ${
+                            idx === 0 || idx === 1 ? 'sticky z-10 bg-inherit' : ''
+                          }`}
                           style={{ 
-                            left: `${idx * 150}px`,
-                            minWidth: '150px',
-                            maxWidth: '150px'
+                            minWidth: '120px',
+                            maxWidth: '200px',
+                            left: idx === 0 ? '0px' : idx === 1 ? '120px' : undefined
                           }}
                         >
-                          {row[k] ?? '-'}
+                          <div className="truncate pivot-table-cell" title={String(row[k] ?? '-')}>
+                            {row[k] ?? '-'}
+                          </div>
                         </td>
                       ))}
 
@@ -297,9 +310,10 @@ export default function PivotTable({
                           return (
                             <td
                               key={`${i}-${col}-${m}`}
-                              className={`px-4 py-3 text-sm text-right border-r border-gray-200 font-mono ${
+                              className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-right border-r border-gray-200 font-mono whitespace-nowrap ${
                                 value > 0 ? 'text-gray-900' : 'text-gray-400'
                               }`}
+                              style={{ minWidth: '100px' }}
                             >
                               {formatValue(m, value)}
                             </td>
@@ -310,7 +324,8 @@ export default function PivotTable({
                       {measures.map((m) => (
                         <td
                           key={`row-total-${i}-${m}`}
-                          className="px-4 py-3 text-sm text-right border-r border-amber-200 font-mono text-gray-900 bg-amber-50"
+                          className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-right border-r border-amber-200 font-mono text-gray-900 bg-amber-50 whitespace-nowrap"
+                          style={{ minWidth: '100px' }}
                         >
                           {formatValue(m, getRowTotalLikeExcel(row, m))}
                         </td>
@@ -319,12 +334,17 @@ export default function PivotTable({
                   ))}
 
                   {/* Total Row */}
-                  <tr className="bg-blue-100 border-t-2 border-blue-300 font-semibold sticky bottom-0">
+                  <tr className="bg-blue-100 border-t-2 border-blue-300 font-semibold">
                     {rowKeys.map((_, idx) => (
                       <td 
                         key={idx} 
-                        className="px-4 py-3 text-sm text-gray-900 border-r border-blue-200 bg-blue-100 sticky left-0 z-10"
-                        style={{ left: `${idx * 150}px` }}
+                        className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 border-r border-blue-200 bg-blue-100 whitespace-nowrap ${
+                          idx === 0 || idx === 1 ? 'sticky z-10' : ''
+                        }`}
+                        style={{ 
+                          minWidth: '120px',
+                          left: idx === 0 ? '0px' : idx === 1 ? '120px' : undefined
+                        }}
                       >
                         {idx === 0 ? 'Total' : ''}
                       </td>
@@ -334,7 +354,8 @@ export default function PivotTable({
                       measures.map(m => (
                         <td
                           key={`total-${col}-${m}`}
-                          className="px-4 py-3 text-sm text-right border-r border-blue-200 font-mono text-gray-900"
+                          className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-right border-r border-blue-200 font-mono text-gray-900 whitespace-nowrap"
+                          style={{ minWidth: '100px' }}
                         >
                           {formatValue(m, (data.columnTotals?.[col] as any)?.[m] ?? 0)}
                         </td>
@@ -346,7 +367,8 @@ export default function PivotTable({
                       return (
                         <td
                           key={`grand-total-${m}`}
-                          className="px-4 py-3 text-sm text-right border-r border-blue-200 font-mono text-gray-900 bg-blue-200"
+                          className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-right border-r border-blue-200 font-mono text-gray-900 bg-blue-200 whitespace-nowrap"
+                          style={{ minWidth: '100px' }}
                         >
                           {formatValue(m, grandTotal)}
                         </td>
@@ -363,7 +385,7 @@ export default function PivotTable({
       {/* Normal View */}
       <div className="h-full flex flex-col bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         {/* Table Header - Responsive */}
-        <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-50">
+        <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-50 flex-shrink-0">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Pivot Results</h3>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -396,8 +418,8 @@ export default function PivotTable({
         </div>
 
       {/* Table Container with Horizontal Scroll - Responsive */}
-      <div className="flex-1 overflow-auto">
-        <table className="min-w-full border-collapse text-xs sm:text-sm">
+      <div className="flex-1 overflow-auto pivot-table-container">
+        <table className="pivot-table border-collapse text-xs sm:text-sm">
           <thead className="sticky top-0 z-10 bg-white">
             {/* Column Headers Row 1 */}
             <tr className="bg-gray-100 border-b border-gray-300">
@@ -405,10 +427,17 @@ export default function PivotTable({
                 <th
                   key={k}
                   rowSpan={2}
-                  className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300 bg-gray-100 sticky left-0 z-20"
-                  style={{ left: `${idx * 150}px` }}
+                  className={`px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300 bg-gray-100 ${
+                    idx === 0 || idx === 1 ? 'sticky z-20' : ''
+                  }`}
+                  style={{ 
+                    minWidth: '120px',
+                    left: idx === 0 ? '0px' : idx === 1 ? '120px' : undefined
+                  }}
                 >
-                  {formatFieldLabel(k)}
+                  <div className="truncate" title={formatFieldLabel(k)}>
+                    {formatFieldLabel(k)}
+                  </div>
                 </th>
               ))}
 
@@ -416,7 +445,7 @@ export default function PivotTable({
                 <th
                   key={col}
                   colSpan={measures.length}
-                  className="px-4 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-blue-50"
+                  className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-blue-50 whitespace-nowrap"
                 >
                   {new Date(col).toLocaleString()}
                 </th>
@@ -424,7 +453,7 @@ export default function PivotTable({
 
               <th
                 colSpan={measures.length}
-                className="px-4 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-amber-50"
+                className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-amber-50 whitespace-nowrap"
               >
                 Totals
               </th>
@@ -436,7 +465,8 @@ export default function PivotTable({
                 measures.map(m => (
                   <th
                     key={`${col}-${m}`}
-                    className="px-4 py-2 text-right text-xs font-medium text-gray-600 border-r border-gray-200 bg-green-50"
+                    className="px-3 sm:px-4 py-1.5 sm:py-2 text-right text-xs font-medium text-gray-600 border-r border-gray-200 bg-green-50 whitespace-nowrap"
+                    style={{ minWidth: '100px' }}
                   >
                     {formatMeasureLabel(m)}
                   </th>
@@ -446,7 +476,8 @@ export default function PivotTable({
               {measures.map(m => (
                 <th
                   key={`totals-${m}`}
-                  className="px-4 py-2 text-right text-xs font-medium text-gray-700 border-r border-gray-200 bg-amber-100"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-right text-xs font-medium text-gray-700 border-r border-gray-200 bg-amber-100 whitespace-nowrap"
+                  style={{ minWidth: '100px' }}
                 >
                   {`${formatMeasureLabel(m).toUpperCase()}`}
                 </th>
@@ -463,14 +494,18 @@ export default function PivotTable({
                 {rowKeys.map((k, idx) => (
                   <td
                     key={k}
-                    className="px-4 py-3 text-sm text-gray-900 font-medium border-r border-gray-200 bg-inherit sticky left-0 z-10"
+                    className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 font-medium border-r border-gray-200 ${
+                      idx === 0 || idx === 1 ? 'sticky z-10 bg-inherit' : ''
+                    }`}
                     style={{ 
-                      left: `${idx * 150}px`,
-                      minWidth: '150px',
-                      maxWidth: '150px'
+                      minWidth: '120px',
+                      maxWidth: '200px',
+                      left: idx === 0 ? '0px' : idx === 1 ? '120px' : undefined
                     }}
                   >
-                    {row[k] ?? '-'}
+                    <div className="truncate pivot-table-cell" title={String(row[k] ?? '-')}>
+                      {row[k] ?? '-'}
+                    </div>
                   </td>
                 ))}
 
@@ -480,9 +515,10 @@ export default function PivotTable({
                     return (
                       <td
                         key={`${i}-${col}-${m}`}
-                        className={`px-4 py-3 text-sm text-right border-r border-gray-200 font-mono ${
+                        className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-right border-r border-gray-200 font-mono whitespace-nowrap ${
                           value > 0 ? 'text-gray-900' : 'text-gray-400'
                         }`}
+                        style={{ minWidth: '100px' }}
                       >
                         {formatValue(m, value)}
                       </td>
@@ -493,7 +529,8 @@ export default function PivotTable({
                 {measures.map((m) => (
                   <td
                     key={`row-total-${i}-${m}`}
-                    className="px-4 py-3 text-sm text-right border-r border-amber-200 font-mono text-gray-900 bg-amber-50"
+                    className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-right border-r border-amber-200 font-mono text-gray-900 bg-amber-50 whitespace-nowrap"
+                    style={{ minWidth: '100px' }}
                   >
                     {formatValue(m, getRowTotalLikeExcel(row, m))}
                   </td>
@@ -503,12 +540,17 @@ export default function PivotTable({
             ))}
 
             {/* Total Row */}
-            <tr className="bg-blue-100 border-t-2 border-blue-300 font-semibold sticky bottom-0">
+            <tr className="bg-blue-100 border-t-2 border-blue-300 font-semibold">
               {rowKeys.map((_, idx) => (
                 <td 
                   key={idx} 
-                  className="px-4 py-3 text-sm text-gray-900 border-r border-blue-200 bg-blue-100 sticky left-0 z-10"
-                  style={{ left: `${idx * 150}px` }}
+                  className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-900 border-r border-blue-200 bg-blue-100 whitespace-nowrap ${
+                    idx === 0 || idx === 1 ? 'sticky z-10' : ''
+                  }`}
+                  style={{ 
+                    minWidth: '120px',
+                    left: idx === 0 ? '0px' : idx === 1 ? '120px' : undefined
+                  }}
                 >
                   {idx === 0 ? 'Total' : ''}
                 </td>
@@ -518,7 +560,8 @@ export default function PivotTable({
                 measures.map(m => (
                   <td
                     key={`total-${col}-${m}`}
-                    className="px-4 py-3 text-sm text-right border-r border-blue-200 font-mono text-gray-900"
+                    className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-right border-r border-blue-200 font-mono text-gray-900 whitespace-nowrap"
+                    style={{ minWidth: '100px' }}
                   >
                     {formatValue(m, (data.columnTotals?.[col] as any)?.[m] ?? 0)}
                   </td>
@@ -530,7 +573,8 @@ export default function PivotTable({
                 return (
                   <td
                     key={`grand-total-${m}`}
-                    className="px-4 py-3 text-sm text-right border-r border-blue-200 font-mono text-gray-900 bg-blue-200"
+                    className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-right border-r border-blue-200 font-mono text-gray-900 bg-blue-200 whitespace-nowrap"
+                    style={{ minWidth: '100px' }}
                   >
                     {formatValue(m, grandTotal)}
                   </td>
