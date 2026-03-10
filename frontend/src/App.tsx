@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import './App.css';
 import Scraper from './pages/Scraper';
 import Dashboard from './pages/Dashboard';
@@ -99,8 +100,12 @@ export function App() {
   }, []);
 
   const handleScrapeComplete = useCallback((sitemapUid: string) => {
-    setCurrentSitemapUid(sitemapUid);
-    setCurrentPage('dashboard');
+    localStorage.setItem('currentSitemapUid', sitemapUid);
+    localStorage.setItem('currentPage', 'dashboard');
+    flushSync(() => {
+      setCurrentSitemapUid(sitemapUid);
+      setCurrentPage('dashboard');
+    });
   }, []);
 
   const handleNewScrape = () => {

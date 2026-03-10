@@ -5,6 +5,7 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onSignIn }: LoginPageProps) {
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -12,6 +13,7 @@ export default function LoginPage({ onSignIn }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+
     event.preventDefault();
     setError('');
 

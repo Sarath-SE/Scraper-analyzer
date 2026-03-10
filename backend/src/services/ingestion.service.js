@@ -1,25 +1,15 @@
 const db = require('../db');
 const scraper = require('./scraper.service');
 const normalizer = require('./normalization.service');
+const { IGNORED_RAW_FIELDS } = require('../constants/pivotDimensions');
+const { normalizeDynamicDimensionKey } = require('../utils/dimensionKey.util');
 
 /**
  * 🔹 RAW SCRAPED JSON KEYS
  * (BEFORE normalization)
  */
-const DIMENSION_FIELDS = [
-  'manufacturer',
-  'series',
-  'Pitch',
-  'Rows',
-  'Positions',
-  'Connector Type',
-  'Mounting Type',
-  'Product Status',
-  'Termination',
-  'package',
-];
-
 exports.ingestScrapeJob = async (scrapeJob) => {
+  
   const client = await db.pool.connect();
 
   try {
@@ -186,13 +176,22 @@ await client.query(
       // =====================================================
       // 7️⃣ SNAPSHOT DIMENSIONS (DYNAMIC)
       // =====================================================
-      for (const field of DIMENSION_FIELDS) {
-        const rawValue = row[field];
+      const dimensionEntries = new Map();
 
-        if (!rawValue || rawValue === '-' || rawValue === '') continue;
+      for (const [field, rawValue] of Object.entries(row)) {
+        if (IGNORED_RAW_FIELDS.has(field)) continue;
+        if (rawValue === undefined || rawValue === null) continue;
 
-        const dimensionKey = normalizer.normalizeDimensionKey(field);
+        const dimensionValue = String(rawValue).trim();
+        if (!dimensionValue || dimensionValue === '-') continue;
 
+        const dimensionKey = normalizeDynamicDimensionKey(field);
+        if (!dimensionKey) continue;
+
+        dimensionEntries.set(dimensionKey, dimensionValue);
+      }
+
+      for (const [dimensionKey, dimensionValue] of dimensionEntries.entries()) {
         await client.query(
           `
           INSERT INTO snapshot_dimensions (
@@ -207,7 +206,7 @@ await client.query(
             snapshotId,
             productId,
             dimensionKey,
-            String(rawValue).trim(),
+            dimensionValue,
           ]
         );
       }

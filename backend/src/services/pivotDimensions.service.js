@@ -1,4 +1,5 @@
 const db = require('../db');
+const { FACT_DIMENSIONS } = require('../constants/pivotDimensions');
 
 function isValidDateString(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -40,8 +41,25 @@ exports.getPivotDimensions = async ({ sitemap_uid, start_date, end_date, month }
     monthFilters.push(`AND DATE_TRUNC('month', s.snapshot_date) = DATE_TRUNC('month', $${params.length}::date)`);
   }
 
-  const { rows } = await db.query(
-    `
+  const factDimensionChecks = Object.entries(FACT_DIMENSIONS)
+    .map(([dimension, column]) => {
+      return `
+      SELECT '${dimension}' AS dimension
+      WHERE EXISTS (
+        SELECT 1
+        FROM snapshot_facts sf
+        JOIN snapshots s ON s.id = sf.snapshot_id
+        JOIN sitemaps sm ON sm.id = s.sitemap_id
+        WHERE sm.sitemap_uid = $1
+        ${dateFilters.join('\n        ')}
+        ${monthFilters.join('\n        ')}
+          AND ${column} IS NOT NULL
+          AND BTRIM(${column}::text) <> ''
+      )`;
+    })
+    .join('\nUNION ALL\n');
+
+  const dynamicDimensionsQuery = `
     SELECT DISTINCT sd.dimension
     FROM snapshot_dimensions sd
     JOIN snapshots s ON s.id = sd.snapshot_id
@@ -49,10 +67,20 @@ exports.getPivotDimensions = async ({ sitemap_uid, start_date, end_date, month }
     WHERE sm.sitemap_uid = $1
     ${dateFilters.join('\n    ')}
     ${monthFilters.join('\n    ')}
-    ORDER BY sd.dimension
+  `;
+
+  const { rows } = await db.query(
+    `
+    SELECT DISTINCT dimension
+    FROM (
+      ${factDimensionChecks}
+      UNION ALL
+      ${dynamicDimensionsQuery}
+    ) available_dimensions
+    ORDER BY dimension
     `,
     params
   );
 
-  return rows.map(r => r.dimension);
+  return rows.map((row) => row.dimension);
 };

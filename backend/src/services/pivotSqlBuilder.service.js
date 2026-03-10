@@ -1,16 +1,4 @@
-const DIMENSION_MAP = {
-  manufacturer: 'sf.manufacturer',
-  series: 'sf.series',
-  product_type: 'sf.product_type',
-  pitch: 'sf.pitch',
-  rows: 'sf.rows',
-  positions: 'sf.positions',
-  connector_type: 'dims.connector_type',
-  mounting_type: 'dims.mounting_type',
-  product_status: 'dims.product_status',
-  termination: 'dims.termination',
-  package: 'dims.package',
-};
+const { FACT_DIMENSIONS } = require('../constants/pivotDimensions');
 
 const MEASURE_MAP = {
   quantity: 'quantity',
@@ -20,6 +8,18 @@ const MEASURE_MAP = {
 };
 
 const ALLOWED_TIME_COLUMNS = new Set(['snapshot_time', 'snapshot_date']);
+
+function isValidDimensionKey(value) {
+  return typeof value === 'string' && /^[a-z0-9_]+$/.test(value);
+}
+
+function getDimensionExpression(rowDim) {
+  if (FACT_DIMENSIONS[rowDim]) {
+    return `${FACT_DIMENSIONS[rowDim]} AS ${rowDim}`;
+  }
+
+  return `dim_values.dimensions ->> '${rowDim}' AS ${rowDim}`;
+}
 
 function isValidDateString(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -46,7 +46,7 @@ exports.buildPivotQuery = ({
   }
 
   rows.forEach((rowDim) => {
-    if (!DIMENSION_MAP[rowDim]) {
+    if (!isValidDimensionKey(rowDim)) {
       throw new Error(`Unknown dimension: ${rowDim}`);
     }
   });
@@ -74,7 +74,7 @@ exports.buildPivotQuery = ({
   }
 
   const rowSelect = rows
-    .map((rowDim) => `${DIMENSION_MAP[rowDim]} AS ${rowDim}`)
+    .map((rowDim) => getDimensionExpression(rowDim))
     .join(',\n    ');
 
   const rowGroupBy = rows.join(', ');
@@ -106,15 +106,11 @@ exports.buildPivotQuery = ({
     : '';
 
   return `
-WITH dims AS (
+WITH dim_values AS (
   SELECT
     snapshot_id,
     product_id,
-    MAX(value) FILTER (WHERE dimension = 'connector_type') AS connector_type,
-    MAX(value) FILTER (WHERE dimension = 'mounting_type') AS mounting_type,
-    MAX(value) FILTER (WHERE dimension = 'product_status') AS product_status,
-    MAX(value) FILTER (WHERE dimension = 'termination') AS termination,
-    MAX(value) FILTER (WHERE dimension = 'package') AS package
+    jsonb_object_agg(dimension, value) AS dimensions
   FROM snapshot_dimensions
   GROUP BY snapshot_id, product_id
 ),
@@ -131,9 +127,9 @@ base_all AS (
   FROM snapshot_facts sf
   JOIN snapshots s
     ON s.id = sf.snapshot_id
-  LEFT JOIN dims
-    ON dims.snapshot_id = sf.snapshot_id
-   AND dims.product_id = sf.product_id
+  LEFT JOIN dim_values
+    ON dim_values.snapshot_id = sf.snapshot_id
+   AND dim_values.product_id = sf.product_id
   ${fullHistoryWhereClause}
 ),
 

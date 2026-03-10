@@ -8,11 +8,10 @@ module.exports = {
     positions: 'sf.positions',
   },
 
-  DYNAMIC_DIMENSIONS: {
-    mounting_type: 'Mounting Type',
-    termination: 'Termination',
-    package: 'package',
-    connector_type: 'Connector Type',
-    product_status: 'Product Status',
-  },
+  IGNORED_RAW_FIELDS: new Set([
+    'web-scraper-order',
+    'web-scraper-start-url',
+    'quantity-available',
+    'price',
+  ]),
 };

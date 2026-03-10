@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { triggerScrape, getJobStatus } from '../api/scraper.api';
 import { UnauthorizedError } from '../api/http';
 
@@ -16,6 +16,25 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
   const [isLoading, setIsLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [showSkippedModal, setShowSkippedModal] = useState(false);
+  const hasNavigatedRef = useRef(false);
+
+  const completeAndNavigate = (rawSitemapUid: string) => {
+    const completedSitemapUid = rawSitemapUid.trim();
+    if (!completedSitemapUid || hasNavigatedRef.current) {
+      return;
+    }
+
+    hasNavigatedRef.current = true;
+    localStorage.setItem('currentSitemapUid', completedSitemapUid);
+    localStorage.setItem('currentPage', 'dashboard');
+    onComplete(completedSitemapUid);
+
+    window.setTimeout(() => {
+      if (document.querySelector('[data-page="scraper"]')) {
+        window.location.reload();
+      }
+    }, 150);
+  };
 
   const handleTrigger = async () => {
     const normalizedSitemapUid = sitemapUid.trim();
@@ -31,6 +50,7 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
     setStatus('');
     setShowSkippedModal(false);
     setShowPopup(false);
+    hasNavigatedRef.current = false;
     
     try {
       const response = await triggerScrape(normalizedSitemapUid);
@@ -69,19 +89,10 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
         console.log('[Scraper] Status update:', statusResponse.status, 'for job:', jobId);
         setStatus(statusResponse.status);
 
-        if (statusResponse.status === 'finished') {
+        if (statusResponse.status === 'finished' || statusResponse.finished_at) {
           clearInterval(interval);
           setIsLoading(false);
-          
-          // Always navigate to dashboard when finished
-          const completedSitemapUid = (lastTriggeredSitemapUid || sitemapUid).trim();
-          console.log('[Scraper] Job finished! Navigating to dashboard with sitemap:', completedSitemapUid);
-          
-          // Small delay to ensure status is visible before navigation
-          setTimeout(() => {
-            console.log('[Scraper] Executing navigation now...');
-            onComplete(completedSitemapUid);
-          }, 1000);
+          completeAndNavigate(lastTriggeredSitemapUid || sitemapUid);
         } else if (statusResponse.status === 'failed') {
           clearInterval(interval);
           setIsLoading(false);
@@ -118,7 +129,7 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-3 sm:p-4 relative overflow-hidden">
+    <div data-page="scraper" className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-3 sm:p-4 relative overflow-hidden">
       {/* Geometric background pattern */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e520_1px,transparent_1px),linear-gradient(to_bottom,#4f46e520_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
@@ -240,7 +251,7 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
                 Your data has been successfully collected and is ready for analysis.
               </p>
               <button
-                onClick={() => onComplete((lastTriggeredSitemapUid || sitemapUid).trim())}
+                onClick={() => completeAndNavigate(lastTriggeredSitemapUid || sitemapUid)}
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-2.5 sm:py-3 px-4 text-sm sm:text-base rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 View Analytics Dashboard →
@@ -276,7 +287,7 @@ export default function Scraper({ onComplete, onSessionExpired, onBackToDashboar
                 <button
                   onClick={() => {
                     setShowSkippedModal(false);
-                    onComplete((lastTriggeredSitemapUid || sitemapUid).trim());
+                    completeAndNavigate(lastTriggeredSitemapUid || sitemapUid);
                   }}
                   className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-2.5 sm:py-3 px-4 text-sm sm:text-base rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
                 >

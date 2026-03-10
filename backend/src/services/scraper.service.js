@@ -1,7 +1,10 @@
 const { Client } = require("@webscraperio/api-client-nodejs");
 const axios = require("axios");
+const dotenv = require('dotenv');
+dotenv.config();
 
 let client = null;
+
 
 function getClient() {
   if (!client) {
@@ -58,14 +61,19 @@ exports.getJobStatus = async (jobId) => {
  * Download scraped data (JSONL)
  */
 exports.getScrapedData = async (jobId) => {
-  const url = `https://api.webscraper.io/api/v1/scraping-job/${jobId}/json?api_token=${process.env.WEBSCRAPER_TOKEN}`;
+  const url = `${process.env.SCRAPER_BASE_URL}/v1/scraping-job/${jobId}/json?api_token=${process.env.WEBSCRAPER_TOKEN}`;
 
   const response = await axios.get(url, {
     responseType: "text",
     timeout: 60000
   });
 
+  
   const raw = response.data;
+
+  console.log("scraper json=====", raw);
+  
+
   if (!raw || raw.trim().length === 0) return [];
 
   return raw

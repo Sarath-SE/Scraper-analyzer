@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PivotResponse } from '../types/pivot';
+import { formatFieldLabel } from '../utils/fieldLabel';
 
 interface PivotTableProps {
   data: PivotResponse;
@@ -19,7 +20,7 @@ export default function PivotTable({
     if (measure === 'avg_price') return 'Avg Price';
     if (measure === 'estimated_sales') return 'Estimated Sales';
     if (measure === 'quantity') return 'Quantity';
-    return measure.replace('_', ' ');
+    return formatFieldLabel(measure);
   };
 
   const formatValue = (measure: string, value: number) => {
@@ -84,7 +85,7 @@ export default function PivotTable({
   const handleExport = () => {
     const csvRows: string[] = [];
 
-    const header1: string[] = [...rowKeys];
+    const header1: string[] = rowKeys.map(formatFieldLabel);
     data.columns.forEach(col => {
       const timestamp = new Date(col).toLocaleString();
       measures.forEach(() => {
@@ -92,7 +93,7 @@ export default function PivotTable({
       });
     });
     measures.forEach((m) => {
-      header1.push(`. ${m.toUpperCase().replace('_', ' ')}`);
+      header1.push(`. ${formatFieldLabel(m).toUpperCase()}`);
     });
     csvRows.push(header1.map(h => `"${h}"`).join(','));
 
@@ -224,7 +225,7 @@ export default function PivotTable({
                         className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300 bg-gray-100 sticky left-0 z-20"
                         style={{ left: `${idx * 150}px` }}
                       >
-                        {k}
+                        {formatFieldLabel(k)}
                       </th>
                     ))}
 
@@ -407,7 +408,7 @@ export default function PivotTable({
                   className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-300 bg-gray-100 sticky left-0 z-20"
                   style={{ left: `${idx * 150}px` }}
                 >
-                  {k}
+                  {formatFieldLabel(k)}
                 </th>
               ))}
 

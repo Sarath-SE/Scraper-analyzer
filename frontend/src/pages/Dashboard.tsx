@@ -8,6 +8,7 @@ import PivotTable from '../components/PivotTable';
 import DashboardTour from '../components/DashboardTour';
 import type { PivotResponse, PivotMeasure } from '../types/pivot';
 import type { AuthUser } from '../auth/storage';
+import { formatFieldLabel } from '../utils/fieldLabel';
 
 type PivotBuilderState = {
   rows: string[];
@@ -139,6 +140,30 @@ export default function Dashboard({
   }, [activeSitemapUid, monthFilter, onSessionExpired]);
 
   useEffect(() => {
+    if (!dimensions.length) return;
+
+    setBuilder((current) => {
+      const nextRows = current.rows.filter((row) => dimensions.includes(row));
+
+      if (nextRows.length > 0) {
+        if (nextRows.length === current.rows.length) {
+          return current;
+        }
+
+        return {
+          ...current,
+          rows: nextRows,
+        };
+      }
+
+      return {
+        ...current,
+        rows: [dimensions[0]],
+      };
+    });
+  }, [dimensions]);
+
+  useEffect(() => {
     if (!builder.rows.length || !builder.measures.length || !activeSitemapUid) {
       setData(null);
       setIsLoading(false);
@@ -209,7 +234,7 @@ export default function Dashboard({
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 relative">
+    <div data-page="dashboard" className="h-screen flex flex-col bg-gray-50 relative">
       {/* Tour Component */}
       <DashboardTour run={runTour} onFinish={handleTourFinish} isDarkMode={isDarkMode} />
 
@@ -632,7 +657,7 @@ function DropZone({ title, items, onRemove, onClear, onDrop, color, minItems = 0
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   )}
-                  <span>{item.replace('_', ' ')}</span>
+                  <span>{formatFieldLabel(item)}</span>
                   {!isLocked && (
                     <button onClick={() => onRemove(item)} className="hover:text-red-600 transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
