@@ -133,7 +133,7 @@ export default function DashboardTour({ run, onFinish, isDarkMode = false }: Das
         <div>
           <h4 className="font-semibold mb-1">Columns Drop Zone</h4>
           <p className="text-sm">
-            Drag dimensions here to create table columns. "snapshot_time" shows data across different time periods.
+            Drag time fields here — use "Snapshot Date" for daily grouping or "Snapshot Time" for exact timestamps.
           </p>
         </div>
       ),
@@ -162,6 +162,18 @@ export default function DashboardTour({ run, onFinish, isDarkMode = false }: Das
         </div>
       ),
       placement: 'left',
+    },
+    {
+      target: '[data-tour="pivot-row"]',
+      content: (
+        <div>
+          <h4 className="font-semibold mb-1">Product Detail View 🔍</h4>
+          <p className="text-sm">
+            Click any row in the table to open a detailed breakdown for that product — showing quantities, avg price, estimated sales, and a full period-by-period history.
+          </p>
+        </div>
+      ),
+      placement: 'top',
     },
     {
       target: 'body',

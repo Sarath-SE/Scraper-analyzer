@@ -82,5 +82,8 @@ exports.getPivotDimensions = async ({ sitemap_uid, start_date, end_date, month }
     params
   );
 
-  return rows.map((row) => row.dimension);
+  // Always expose snapshot_date and snapshot_time as column dimension options
+  const dims = rows.map((row) => row.dimension);
+  // Remove snapshot_date/time from regular dimensions — they are handled separately in the frontend
+  return dims.filter(d => d !== 'snapshot_date' && d !== 'snapshot_time');
 };

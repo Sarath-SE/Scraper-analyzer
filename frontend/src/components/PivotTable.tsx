@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import type { PivotResponse } from '../types/pivot';
+import type { PivotResponse, PivotRow } from '../types/pivot';
 import { formatFieldLabel } from '../utils/fieldLabel';
+import ProductDetailModal from './ProductDetailModal';
 
 interface PivotTableProps {
   data: PivotResponse;
@@ -14,6 +15,17 @@ export default function PivotTable({
   measures,
 }: PivotTableProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState<PivotRow | null>(null);
+
+  const formatColumnHeader = (col: string) => {
+    const d = new Date(col);
+    if (isNaN(d.getTime())) return col;
+    // Plain date string OR midnight UTC (snapshot_date) → date only
+    if (/^\d{4}-\d{2}-\d{2}$/.test(col) || d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
+      return d.toLocaleDateString();
+    }
+    return d.toLocaleString();
+  };
 
   const formatMeasureLabel = (measure: string) => {
     if (measure === 'qty_sold' || measure === 'quantity_sold') return 'Qty Sold';
@@ -60,11 +72,12 @@ export default function PivotTable({
     if (!values.length) return 0;
 
     if (isQuantityMeasure(measure)) {
-      // Quantity should reflect actual available inventory, not summed history.
+      // Quantity = last known snapshot value (current inventory)
       return values[values.length - 1];
     }
 
     if (isAverageMeasure(measure)) {
+      // Domo uses simple average of avg_price across all periods (including zero-sale periods)
       return values.reduce((sum, v) => sum + v, 0) / values.length;
     }
 
@@ -72,14 +85,29 @@ export default function PivotTable({
   };
 
   const getGrandTotalLikeExcel = (measure: string) => {
-    const rowTotals = data.rows.map((row) => getRowTotalLikeExcel(row, measure));
-    if (!rowTotals.length) return 0;
+    if (!data.rows.length) return 0;
 
     if (isAverageMeasure(measure)) {
+      // Simple average of each row's avg_price total
+      const rowTotals = data.rows.map((row) => getRowTotalLikeExcel(row, measure));
       return rowTotals.reduce((sum, v) => sum + v, 0) / rowTotals.length;
     }
 
-    return rowTotals.reduce((sum, v) => sum + v, 0);
+    return data.rows
+      .map((row) => getRowTotalLikeExcel(row, measure))
+      .reduce((sum, v) => sum + v, 0);
+  };
+
+  // Per-period column total for avg_price: simple average across all rows for that period
+  const getColumnTotal = (col: string, measure: string): number => {
+    if (isAverageMeasure(measure)) {
+      const prices = data.rows
+        .map((row) => (row.values?.[col] as any)?.[measure])
+        .filter((v) => v !== undefined && v !== null)
+        .map(Number);
+      return prices.length ? prices.reduce((sum, v) => sum + v, 0) / prices.length : 0;
+    }
+    return (data.columnTotals?.[col] as any)?.[measure] ?? 0;
   };
 
   const handleExport = () => {
@@ -87,7 +115,7 @@ export default function PivotTable({
 
     const header1: string[] = rowKeys.map(formatFieldLabel);
     data.columns.forEach(col => {
-      const timestamp = new Date(col).toLocaleString();
+      const timestamp = formatColumnHeader(col);
       measures.forEach(() => {
         header1.push(timestamp);
       });
@@ -132,7 +160,7 @@ export default function PivotTable({
     });
     data.columns.forEach(col => {
       measures.forEach(m => {
-        const value = (data.columnTotals?.[col] as any)?.[m] ?? 0;
+        const value = getColumnTotal(col, m);
         totalRow.push(formatValueForExport(m, value));
       });
     });
@@ -176,6 +204,16 @@ export default function PivotTable({
 
   return (
     <>
+      {selectedRow && (
+        <ProductDetailModal
+          row={selectedRow}
+          rowKeys={rowKeys}
+          columns={data.columns}
+          measures={measures}
+          onClose={() => setSelectedRow(null)}
+        />
+      )}
+
       {/* Fullscreen Modal */}
       {isFullscreen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
@@ -242,7 +280,7 @@ export default function PivotTable({
                         colSpan={measures.length}
                         className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-blue-50 whitespace-nowrap"
                       >
-                        {new Date(col).toLocaleString()}
+                        {formatColumnHeader(col)}
                       </th>
                     ))}
 
@@ -284,7 +322,8 @@ export default function PivotTable({
                   {data.rows.map((row, i) => (
                     <tr 
                       key={i} 
-                      className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors border-b border-gray-200`}
+                      onClick={() => setSelectedRow(row)}
+                      className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors border-b border-gray-200 cursor-pointer`}
                     >
                       {rowKeys.map((k, idx) => (
                         <td
@@ -357,7 +396,7 @@ export default function PivotTable({
                           className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-right border-r border-blue-200 font-mono text-gray-900 whitespace-nowrap"
                           style={{ minWidth: '100px' }}
                         >
-                          {formatValue(m, (data.columnTotals?.[col] as any)?.[m] ?? 0)}
+                          {formatValue(m, getColumnTotal(col, m))}
                         </td>
                       ))
                     )}
@@ -447,7 +486,7 @@ export default function PivotTable({
                   colSpan={measures.length}
                   className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 bg-blue-50 whitespace-nowrap"
                 >
-                  {new Date(col).toLocaleString()}
+                  {formatColumnHeader(col)}
                 </th>
               ))}
 
@@ -487,9 +526,11 @@ export default function PivotTable({
 
           <tbody>
             {data.rows.map((row, i) => (
-              <tr 
-                key={i} 
-                className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors border-b border-gray-200`}
+              <tr
+                key={i}
+                onClick={() => setSelectedRow(row)}
+                data-tour={i === 0 ? 'pivot-row' : undefined}
+                className={`${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors border-b border-gray-200 cursor-pointer`}
               >
                 {rowKeys.map((k, idx) => (
                   <td
@@ -563,7 +604,7 @@ export default function PivotTable({
                     className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-right border-r border-blue-200 font-mono text-gray-900 whitespace-nowrap"
                     style={{ minWidth: '100px' }}
                   >
-                    {formatValue(m, (data.columnTotals?.[col] as any)?.[m] ?? 0)}
+                    {formatValue(m, getColumnTotal(col, m))}
                   </td>
                 ))
               )}

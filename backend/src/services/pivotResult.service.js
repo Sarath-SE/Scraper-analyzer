@@ -5,7 +5,9 @@ module.exports.buildPivotResult = (rows, rowDims, colDim, measures) => {
 
   for (const r of rows) {
     const colValue = r[colDim] instanceof Date
-      ? r[colDim].toISOString()
+      ? (colDim === 'snapshot_date'
+          ? r[colDim].toISOString().slice(0, 10)   // "2026-02-08"
+          : r[colDim].toISOString())                // full ISO for snapshot_time
       : r[colDim];
 
     columnSet.add(colValue);

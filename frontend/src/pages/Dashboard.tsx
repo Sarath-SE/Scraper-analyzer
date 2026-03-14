@@ -102,7 +102,7 @@ export default function Dashboard({
 
   const [builder, setBuilder] = useState<PivotBuilderState>({
     rows: ['manufacturer', 'product_type'],
-    columns: ['snapshot_time'],
+    columns: ['snapshot_date'],
     measures: ['quantity'],
   });
 
@@ -183,20 +183,27 @@ export default function Dashboard({
     setBuilder((current) => {
       const nextRows = current.rows.filter((row) => dimensions.includes(row));
 
+      // Migrate snapshot_time default → snapshot_date
+      const nextColumns = current.columns.map(c =>
+        c === 'snapshot_time' ? 'snapshot_date' : c
+      );
+
       if (nextRows.length > 0) {
-        if (nextRows.length === current.rows.length) {
+        if (nextRows.length === current.rows.length && nextColumns.join() === current.columns.join()) {
           return current;
         }
 
         return {
           ...current,
           rows: ensureRequiredRows(nextRows, dimensions),
+          columns: nextColumns,
         };
       }
 
       return {
         ...current,
         rows: ensureRequiredRows([dimensions[0]], dimensions),
+        columns: nextColumns,
       };
     });
   }, [dimensions]);
@@ -210,9 +217,14 @@ export default function Dashboard({
 
     setIsLoading(true);
 
+    // When both snapshot_date and snapshot_time are in columns, use snapshot_time (more granular)
+    const effectiveColumns = builder.columns.includes('snapshot_time')
+      ? ['snapshot_time', ...builder.columns.filter(c => c !== 'snapshot_time')]
+      : builder.columns;
+
     runPivot({
       rows: builder.rows,
-      columns: builder.columns,
+      columns: effectiveColumns,
       measures: builder.measures as PivotMeasure[],
       filters: {
         sitemap_uid: activeSitemapUid,
@@ -363,13 +375,14 @@ export default function Dashboard({
 
             <button
               onClick={handleStartTour}
-              className="h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center rounded-md border border-blue-200 bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-400 transition-all"
-              aria-label="Start tour"
-              title="Start guided tour"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:border-amber-400 transition-all text-xs font-semibold"
+              aria-label="Start guided tour"
+              title="Take a guided tour of the dashboard"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
+              <span className="hidden sm:inline">Take a Tour</span>
             </button>
 
             <div className="relative" ref={userMenuRef}>
@@ -449,7 +462,6 @@ export default function Dashboard({
         >
           {!isSidebarCollapsed && (
             <PivotBuilder
-              key={`${builder.rows.join(',')}-${builder.columns.join(',')}-${builder.measures.join(',')}`}
               allDimensions={dimensions}
               allMeasures={ALL_MEASURES}
               value={builder}
@@ -512,6 +524,7 @@ export default function Dashboard({
                   };
                   setBuilder(newBuilder);
                 }}
+                onReorder={(newRows) => setBuilder({ ...builder, rows: newRows })}
                 color="blue"
                 acceptType="dimension"
                 minItems={1}
@@ -522,25 +535,25 @@ export default function Dashboard({
                 title="Columns"
                 items={builder.columns}
                 onRemove={(item) => {
+                  if (item === 'snapshot_date') return;
                   if (builder.columns.length > 1) {
                     setBuilder({ ...builder, columns: builder.columns.filter((i) => i !== item) });
                   }
                 }}
                 onClear={() => {
-                  if (builder.columns.length > 0) {
-                    setBuilder({ ...builder, columns: [builder.columns[0]] });
-                  }
+                  // Keep snapshot_date always
+                  setBuilder({ ...builder, columns: ['snapshot_date'] });
                 }}
                 onDrop={(item) => {
-                  const newBuilder = {
+                  const newColumns = builder.columns.includes(item) ? builder.columns : [...builder.columns, item];
+                  setBuilder({
                     rows: builder.rows.filter((i) => i !== item),
-                    columns: builder.columns.includes(item) ? builder.columns : [...builder.columns, item],
+                    columns: newColumns,
                     measures: builder.measures,
-                  };
-                  setBuilder(newBuilder);
+                  });
                 }}
                 color="purple"
-                acceptType="dimension"
+                acceptType="time"
                 minItems={1}
               />
 
@@ -563,6 +576,7 @@ export default function Dashboard({
                     setBuilder({ ...builder, measures: [...builder.measures, item] });
                   }
                 }}
+                onReorder={(newMeasures) => setBuilder({ ...builder, measures: newMeasures })}
                 color="green"
                 acceptType="measure"
                 minItems={1}
@@ -603,32 +617,85 @@ interface DropZoneProps {
   onRemove: (item: string) => void;
   onClear: () => void;
   onDrop: (item: string) => void;
+  onReorder?: (newItems: string[]) => void;
   color: 'blue' | 'purple' | 'green';
-  acceptType?: 'dimension' | 'measure';
+  acceptType?: 'dimension' | 'measure' | 'time';
   minItems?: number;
   dataTour?: string;
 }
 
-function DropZone({ title, items, onRemove, onClear, onDrop, color, minItems = 0, dataTour }: DropZoneProps) {
+function DropZone({ title, items, onRemove, onClear, onDrop, onReorder, color, acceptType, minItems = 0, dataTour }: DropZoneProps) {
   const [isDragOver, setIsDragOver] = React.useState(false);
+  const [isRejected, setIsRejected] = React.useState(false);
+  const dragItemIndex = React.useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = React.useState<number | null>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
+    const fieldType = e.dataTransfer.getData('fieldType');
+    if (acceptType && fieldType && fieldType !== acceptType) {
+      setIsRejected(true);
+      return; // don't call preventDefault — browser shows "not allowed" cursor
+    }
     e.preventDefault();
+    setIsRejected(false);
     setIsDragOver(true);
   };
 
   const handleDragLeave = () => {
     setIsDragOver(false);
+    setIsRejected(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
+    setIsRejected(false);
+    dragItemIndex.current = null;
+    setDragOverIndex(null);
+
+    const fieldType = e.dataTransfer.getData('fieldType');
+    if (acceptType && fieldType && fieldType !== acceptType) return;
 
     const data = e.dataTransfer.getData('text/plain');
     if (data) {
       onDrop(data);
     }
+  };
+
+  const handleChipDragStart = (e: React.DragEvent, index: number, item: string) => {
+    dragItemIndex.current = index;
+    e.dataTransfer.setData('text/plain', item);
+    e.dataTransfer.setData('fieldType', acceptType ?? '');
+    e.dataTransfer.setData('reorder', 'true');
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleChipDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragItemIndex.current !== null && dragItemIndex.current !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleChipDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const isReorder = e.dataTransfer.getData('reorder') === 'true';
+    if (isReorder && dragItemIndex.current !== null && dragItemIndex.current !== index && onReorder) {
+      const reordered = [...items];
+      const [moved] = reordered.splice(dragItemIndex.current, 1);
+      reordered.splice(index, 0, moved);
+      onReorder(reordered);
+    }
+    dragItemIndex.current = null;
+    setDragOverIndex(null);
+    setIsDragOver(false);
+  };
+
+  const handleChipDragEnd = () => {
+    dragItemIndex.current = null;
+    setDragOverIndex(null);
   };
 
   const colorClasses = {
@@ -683,31 +750,45 @@ function DropZone({ title, items, onRemove, onClear, onDrop, color, minItems = 0
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`h-[100px] p-3 border-2 border-dashed rounded-lg transition-colors overflow-y-auto custom-scrollbar ${
-          isDragOver
-            ? colors.dragOver
-            : items.length > 0
-              ? `${colors.border} ${colors.bg}`
-              : 'border-gray-300 bg-gray-50'
+          isRejected
+            ? 'border-red-300 bg-red-50'
+            : isDragOver
+              ? colors.dragOver
+              : items.length > 0
+                ? `${colors.border} ${colors.bg}`
+                : 'border-gray-300 bg-gray-50'
         }`}
       >
         {items.length === 0 ? (
           <div className="text-xs text-gray-400 text-center py-4">Drop {title.toLowerCase()} here</div>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {items.map((item) => {
+            {items.map((item, index) => {
               // Check if this is a required row (manufacturer or part_number)
               const isRequiredRow = title === 'Rows' && (
                 item === 'manufacturer' || 
                 item === 'part_number' || 
                 item === 'product_type'
               );
-              const isLocked = (minItems > 0 && items.length <= minItems) || isRequiredRow;
+              const isRequiredColumn = title === 'Columns' && item === 'snapshot_date';
+              const isLocked = (minItems > 0 && items.length <= minItems) || isRequiredRow || isRequiredColumn;
+              const isDragTarget = dragOverIndex === index;
               
               return (
                 <div
                   key={item}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 ${colors.itemBg} border ${colors.itemBorder} rounded-md text-xs font-medium ${colors.text}`}
+                  draggable={!!onReorder}
+                  onDragStart={onReorder ? (e) => handleChipDragStart(e, index, item) : undefined}
+                  onDragOver={onReorder ? (e) => handleChipDragOver(e, index) : undefined}
+                  onDrop={onReorder ? (e) => handleChipDrop(e, index) : undefined}
+                  onDragEnd={onReorder ? handleChipDragEnd : undefined}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 ${colors.itemBg} border ${colors.itemBorder} rounded-md text-xs font-medium ${colors.text} transition-all ${onReorder ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragTarget ? 'ring-2 ring-blue-400 scale-105' : ''}`}
                 >
+                  {onReorder && (
+                    <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8-12a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
+                    </svg>
+                  )}
                   {isLocked && (
                     <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
