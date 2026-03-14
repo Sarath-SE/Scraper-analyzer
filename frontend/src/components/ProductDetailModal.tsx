@@ -53,8 +53,6 @@ export default function ProductDetailModal({ row, rowKeys, columns, measures, on
     return values.reduce((s, v) => s + v, 0);
   };
 
-  const productLabel = rowKeys.map(k => row[k] ?? '-').join(' · ');
-
   return (
     <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div
